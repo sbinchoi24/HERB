@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HERB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2F4F6;
+    --card:#FFFFFF;
+    --ink:#191F28;
+    --ink2:#4E5968;
+    --ink3:#8B95A1;
+    --line:#E5E8EB;
+    --blue:#3182F6;
+    --blue-mid:#A8D0F5;
+    --blue-d:#5B9BD5;
+    --blue-bg:#EAF2FE;
+    --orange:#E8934F;
+    --orange-mid:#F5C99A;
+    --orange-d:#E8934F;
+    --orange-bg:#FDEEE1;
+    --anchor:#6B7684;
+    --anchor-bg:#EDF0F3;
+    --red:#F04452;
+    --red-bg:#FEECEE;
+    --amber:#F59F00;
+    --amber-bg:#FFF4E0;
+    --r:16px;
+    --r-sm:10px;
+    --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 20px 80px;
+    line-height:1.4;
+  }
+  .wrap{max-width:1280px;margin:0 auto}
+
+  /* header */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:14px}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .sub{color:var(--ink3);font-size:14px;margin-top:4px;font-weight:500}
+
+  /* add form */
+  .add{
+    background:var(--card);border-radius:var(--r);padding:16px;
+    display:flex;gap:10px;align-items:center;box-shadow:var(--shadow);flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .add label{font-size:12px;font-weight:700;color:var(--ink3);margin-right:2px}
+  .add input,.add select{
+    font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:var(--r-sm);
+    padding:10px 12px;background:#fff;outline:none;transition:border-color .15s;
+  }
+  .add input:focus,.add select:focus{border-color:var(--blue)}
+  .add input[type=text]{width:120px}
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+    border:none;border-radius:var(--r-sm);padding:11px 18px;
+    background:var(--blue);color:#fff;transition:background .15s,transform .05s;
+  }
+  .btn:hover{background:var(--blue-d)}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--anchor-bg);color:var(--ink2)}
+  .btn.ghost:hover{background:#E1E5EA}
+  /* 세그 버튼과 높이를 맞춘 작은 "돌아가기" 버튼 */
+  .btn-back{
+    font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    border:none;border-radius:8px;padding:7px 15px;
+    background:var(--red-bg);color:var(--red);transition:background .15s;
+  }
+  .btn-back:hover{background:#FADADE}
+
+  /* alert banner */
+  .alert{
+    background:var(--red-bg);border:1.5px solid #FADADE;border-radius:var(--r);
+    padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;
+    animation:drop .25s ease;
+  }
+  @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .alert .dot{width:9px;height:9px;border-radius:50%;background:var(--red);flex:none;box-shadow:0 0 0 4px rgba(240,68,82,.15)}
+  .alert b{color:var(--red);font-weight:800;font-size:15px}
+  .alert span{color:var(--ink2);font-size:14px;font-weight:600}
+
+  /* calendar shell */
+  .cal{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px}
+  .cal-title{font-size:20px;font-weight:800;letter-spacing:-.4px}
+  .nav{display:flex;gap:6px}
+  .head-right{display:flex;align-items:center;gap:12px}
+  .seg{display:flex;background:var(--bg);border-radius:10px;padding:3px}
+  .seg button{border:none;background:none;padding:7px 15px;border-radius:8px;
+    font-family:inherit;font-size:13px;font-weight:700;color:var(--ink3);cursor:pointer;transition:all .15s}
+  .seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .nav button{
+    width:36px;height:36px;border-radius:10px;border:none;cursor:pointer;
+    background:var(--bg);color:var(--ink2);font-size:18px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;transition:background .15s;
+  }
+  .nav button:hover{background:#E5E8EB}
+
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line)}
+  .dow div{text-align:center;padding:10px 0;font-size:12px;font-weight:700;color:var(--ink3)}
+  .dow div:first-child{color:#E5535F}
+
+  .grid{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cell{
+    min-height:128px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:8px 8px 10px;position:relative;transition:background .12s;
+  }
+  .cell:nth-child(7n){border-right:none}
+  .cell.mute{background:#FBFCFD}
+  .cell.mute .num{color:var(--ink3);opacity:.5}
+  .cell.today .num{background:var(--blue);color:#fff}
+  .cell.over{background:var(--red-bg)}
+  .cell.dragover{background:var(--blue-bg);box-shadow:inset 0 0 0 2px var(--blue)}
+  .num{
+    font-size:13px;font-weight:700;color:var(--ink2);
+    width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:8px;margin-bottom:4px;
+  }
+  .cell.sun .num{color:#E5535F}
+
+  .cnt{
+    position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;
+    padding:2px 7px;border-radius:20px;background:var(--anchor-bg);color:var(--ink2);
+  }
+  .cnt.warn{background:var(--amber-bg);color:var(--amber)}
+  .cnt.bad{background:var(--red);color:#fff;box-shadow:0 0 0 3px rgba(240,68,82,.15)}
+
+  /* chips — 탕전만 블럭 전체를 색으로 채우고, 나머지는 흰 배경 + 점 하나로 종류(한약=파랑/다이어트=주황) 표시 */
+  .chips{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+  .chip{
+    display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;position:relative;
+    background:#fff;border:none;
+    border-radius:6px;padding:6px 9px;font-size:11px;font-weight:700;
+    box-shadow:0 1px 2px rgba(0,0,0,.05);
+    transition:transform .1s,box-shadow .1s;
+  }
+  .chip:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.1)}
+  .chip:active{cursor:grabbing}
+  .chip.dragging{opacity:.4}
+  .chip .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .chip .who{color:var(--ink);font-weight:800}
+  .chip .role{color:var(--ink2);font-weight:600}
+  .chip .day{margin-left:auto;color:var(--blue);font-weight:800;font-size:10px}
+
+  /* 점 색: 한약=파랑, 다이어트=주황 (처방·HS·IS 등 탕전이 아닌 모든 칩) */
+  .chip .dot.dot-gen{background:var(--blue)}
+  .chip .dot.dot-diet{background:var(--orange)}
+  /* 탕전(채움) 칩은 점을 투명하게 — 자리는 그대로 차지해서 이름 위치를 다른 칩과 맞춤(고정폭) */
+  .chip .dot.dot-hidden{background:transparent}
+  /* 탕전만 칩 전체를 옅게 채움 */
+  .chip.fill-gen{background:var(--blue-mid)}
+  .chip.fill-diet{background:var(--orange-mid)}
+  .chip.moved{background:var(--red-bg)}
+  .chip.moved .dot{background:var(--red)}
+  .chip.moved .role,.chip.moved .day{color:var(--red)}
+  /* 이동 툴팁 */
+  .chip[data-tip]:hover::after{
+    content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 7px);
+    background:var(--ink);color:#fff;font-size:11px;font-weight:600;white-space:nowrap;
+    padding:6px 10px;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.18);
+    z-index:60;pointer-events:none;
+  }
+  .chip[data-tip]:hover::before{
+    content:'';position:absolute;left:13px;bottom:calc(100% + 2px);
+    border:5px solid transparent;border-top-color:var(--ink);z-index:60;pointer-events:none;
+  }
+
+  /* 환자 이름 우클릭 메뉴 */
+  .ctx-menu{
+    position:fixed;display:none;background:#fff;border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:300;
+  }
+  .ctx-menu button{
+    display:block;width:100%;white-space:nowrap;text-align:left;
+    font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);
+    border:none;background:none;padding:9px 14px;border-radius:7px;cursor:pointer;
+  }
+  .ctx-menu button:hover{background:var(--bg)}
+
+  /* 픽업 이동 선택 모달 */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(15,20,25,.45);
+    display:none;align-items:center;justify-content:center;z-index:400;
+  }
+  .modal-overlay.open{display:flex}
+  .modal-card{
+    background:#fff;border-radius:16px;padding:22px;width:320px;max-width:88vw;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+  .modal-title{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:18px;line-height:1.4}
+  .modal-btn{
+    display:block;width:100%;padding:13px;border:none;border-radius:12px;
+    font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+    margin-bottom:8px;transition:background .15s;
+  }
+  .modal-btn.primary{background:var(--blue);color:#fff}
+  .modal-btn.primary:hover{background:var(--blue-d)}
+  .modal-btn.secondary{background:var(--anchor-bg);color:var(--ink2)}
+  .modal-btn.secondary:hover{background:#E1E5EA}
+  .modal-cancel{
+    display:block;width:100%;text-align:center;margin-top:2px;padding:8px;
+    font-family:inherit;font-size:13px;font-weight:600;color:var(--ink3);
+    border:none;background:none;cursor:pointer;
+  }
+  .modal-cancel:hover{color:var(--ink2)}
+
+  /* legend */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;padding:0 4px}
+  .legend div{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2)}
+  .legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+  .note{margin-top:10px;padding:0 4px;font-size:12px;color:var(--ink3);font-weight:500}
+
+  /* 상세 패널 */
+  .panel{
+    position:fixed;top:0;right:0;height:100vh;width:460px;max-width:92vw;
+    background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.12);
+    transform:translateX(105%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+    z-index:200;padding:24px 22px;overflow-y:auto;
+  }
+  .panel.open{transform:none}
+  .p-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px}
+  .p-name{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .p-tag{display:inline-block;margin-top:7px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+  .t-gen{background:var(--blue-bg);color:var(--blue-d)}
+  .t-diet{background:var(--orange-bg);color:var(--orange)}
+  .p-x{border:none;background:var(--bg);width:34px;height:34px;border-radius:10px;font-size:22px;color:var(--ink2);cursor:pointer;line-height:1}
+  .p-x:hover{background:#E5E8EB}
+  .p-list{display:flex;flex-direction:column;margin-top:18px}
+  /* 명칭 | 복용 며칠째 | 날짜(수정 가능) — 행이 달라도 각 열 폭이 고정돼 정렬이 맞음 */
+  .p-row{display:grid;grid-template-columns:14px 1fr 88px 116px;align-items:center;column-gap:10px;padding:15px 4px;border-bottom:1px solid var(--line)}
+  .p-row:last-child{border-bottom:none}
+  .p-dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .p-dot.dot-gen{background:var(--blue)}
+  .p-dot.dot-diet{background:var(--orange)}
+  .p-main{min-width:0}
+  .p-label{font-size:15px;font-weight:700;color:var(--ink)}
+  .p-dosecol{display:flex}
+  .p-day{font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-bg);padding:2px 7px;border-radius:12px;white-space:nowrap}
+  .p-move{font-size:12px;font-weight:600;color:var(--red);margin-top:4px}
+  .p-date{text-align:right}
+  .p-date-input{
+    font-family:inherit;font-size:13px;font-weight:800;color:var(--ink);
+    border:none;background:transparent;text-align:right;padding:2px 0;cursor:pointer;width:100%;
+  }
+  .p-date-input:hover{color:var(--blue-d)}
+  .p-date-input:focus{outline:none;color:var(--blue-d)}
+  .p-dow{display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-top:1px;text-align:right}
+  .p-dob-inline{font-size:13px;color:var(--ink3);font-weight:700}
+  .p-btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:12px;
+    background:var(--blue);color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
+  .p-btn:hover{background:var(--blue-d)}
+  .p-btn.ghost{background:var(--anchor-bg);color:var(--ink2)}
+  .p-btn.ghost:hover{background:#E1E5EA}
+  .p-btn:disabled{opacity:.4;cursor:not-allowed}
+  .p-btn:disabled:hover{background:var(--anchor-bg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>탕전 일정</h1>
+    </div>
+    <button class="btn ghost" onclick="jumpToday()">오늘로</button>
+  </div>
+
+  <div class="add">
+    <label>처방일</label>
+    <input type="date" id="f-date">
+    <label>종류</label>
+    <select id="f-type">
+      <option value="일반">일반 한약</option>
+      <option value="다이어트">다이어트 한약</option>
+    </select>
+    <label>환자</label>
+    <input type="text" id="f-name" placeholder="이름">
+    <label>생년월일</label>
+    <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px">
+    <button class="btn" onclick="addCase()">추가</button>
+  </div>
+
+  <div id="alerts"></div>
+
+  <div class="cal">
+    <div class="cal-head">
+      <div class="cal-title" id="calTitle"></div>
+      <div class="head-right">
+        <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
+        <div class="seg">
+          <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
+          <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
+        </div>
+        <div class="nav">
+          <button onclick="move(-1)">‹</button>
+          <button onclick="move(1)">›</button>
+        </div>
+      </div>
+    </div>
+    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div id="ctxMenu" class="ctx-menu"></div>
+
+<div class="modal-overlay" id="moveModal" onclick="cancelMove()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-title">픽업 일정을 옮기시겠습니까?</div>
+    <button class="modal-btn secondary" onclick="resolveMove(false)">픽업만 단독으로 옮기기</button>
+    <button class="modal-btn primary" onclick="resolveMove(true)">픽업 이후 일정도 함께 옮기기</button>
+    <button class="modal-cancel" onclick="cancelMove()">취소</button>
+  </div>
+</div>
+
+<div class="panel" id="panel"></div>
+
+<script>
+/* ---------- 날짜 유틸 ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d);};
+const diff=(a,b)=>Math.round((parse(a)-parse(b))/86400000);
+
+/* ---------- 종류별 스키마 ----------
+   kind: anchor(고정점) / brew(탕전,카운트) / consult(상담·픽업)
+   일반:   처방(T) → 1차탕전 T+1 → 픽업(탕전+2일,안 보임) → 복용시작(픽업+1일) / HS(탕전+11일) → 다음 탕전(HS+1일)
+           (이후 차수도 동일 패턴 반복)
+   다이어트: 처방(T) → 매 차수 탕전 → 픽업(+2일) → 복용시작(픽업+1일) → 복용IS → 다음 탕전
+            1·2차는 다음 탕전까지 14일분, 3차부터는 15일분. 픽업·복용시작은 캘린더엔 안 보이고 패널에서만 표시.
+*/
+const SCHEMA={
+  일반:{
+    minCycles:2,
+    // 매 차수: 탕전 → 복용 시작(탕전+2일, 캘린더엔 안 보이고 패널에서만) → 복용 HS(탕전+11일) → 다음 탕전(HS+1일)
+    build(T,cycles){
+      const n=Math.max(cycles||2,2);
+      const data={처방:T};
+      const order=['처방'];
+      const meta={처방:{label:'처방',kind:'anchor'}};
+      let brewK=addDays(T,1);
+      for(let k=1;k<=n;k++){
+        const bK='brew'+k,pK='pickup'+k,sK='start'+k,hK='hs'+k;
+        const pickupDate=addDays(brewK,2); // 픽업 = 탕전+2일 (캘린더엔 안 보임)
+        const startDate=addDays(pickupDate,1); // 복용 시작 = 픽업 다음날
+        const hsDate=addDays(brewK,11);
+        data[bK]=brewK;data[pK]=pickupDate;data[sK]=startDate;data[hK]=hsDate;
+        order.push(bK,pK,sK,hK);
+        meta[bK]={label:`${k}차 탕전`,kind:'brew'};
+        meta[pK]={label:`${k}차 픽업`,kind:'anchor'};
+        meta[sK]={label:`${k}차 복용 시작`,kind:'anchor'};
+        meta[hK]={label:`${k}차 복용 HS`,kind:'consult'};
+        brewK=addDays(hsDate,1);
+      }
+      return {order,meta,data};
+    }
+  },
+  다이어트:{
+    minCycles:2,
+    // 규칙: 1차 픽업=탕전+2일. 이후 픽업(N+1차)=직전 차수 복용 14일차(1·2차분) 또는 15일차(3차분부터).
+    //       복용시작=픽업+1일. 복용IS=복용시작+7일(=복용 8일차, 전 차수 공통).
+    //       다음 탕전=이번 차수 복용IS 다음날.
+    build(T,cycles){
+      const n=Math.max(cycles||2,2);
+      const data={처방:T};
+      const order=['처방'];
+      const meta={처방:{label:'처방',kind:'anchor'}};
+      let brewK=addDays(T,1),prevStart=null,prevBatchDays=null;
+      for(let k=1;k<=n;k++){
+        const bK='brew'+k,pK='pickup'+k,sK='start'+k,iK='is'+k;
+        const pickupDate = k===1 ? addDays(brewK,2) : addDays(prevStart,prevBatchDays-1);
+        const startDate=addDays(pickupDate,1);
+        const isDate=addDays(startDate,7); // 복용 8일차 고정
+        data[bK]=brewK;data[pK]=pickupDate;data[sK]=startDate;data[iK]=isDate;
+        order.push(bK,pK,sK,iK);
+        meta[bK]={label:`${k}차 탕전`,kind:'brew'};
+        meta[pK]={label:`${k}차 픽업 IS`,kind:'consult'};
+        meta[sK]={label:`${k}차 복용 시작`,kind:'anchor'};
+        meta[iK]={label:`${k}차 복용 IS`,kind:'consult'};
+        prevStart=startDate;
+        prevBatchDays=k<=2?14:15; // 1·2차=14일분, 3차부터=15일분
+        brewK=addDays(isDate,1); // 다음 탕전 = 이번 복용IS 다음날
+      }
+      return {order,meta,data};
+    }
+  }
+};
+
+// 종류 색: 한약(일반)=파랑, 다이어트=주황으로 고정. 탕전만 칩 전체를 채우고 나머지는 점 하나로만 표시.
+function famOf(type){return type==='다이어트'?'diet':'gen';}
+function isBrewKind(kind){return kind==='brew';}
+// 케이스 하나의 현재 스키마(순번/라벨/처방일 기준 정석 날짜)를 구성
+function schemaBuild(c){
+  return SCHEMA[c.type].build(c.처방,c.cycles||2);
+}
+const MAX=6;
+
+// 순번상 "바로 앞 일정 + 정석 간격"과 실제 날짜를 비교해 이동 여부 판단.
+// 앞 일정이 밀리면서 함께 같은 간격으로 밀린 칩은 moved=false,
+// 그 간격 자체가 깨진 칩만 moved=true 가 된다.
+// 픽업 바로 다음 일정(복용시작)은 두 가지 기준을 모두 확인한다:
+// (1) 픽업이 아닌 마지막 일정 기준 — 픽업만 단독으로 옮겨서 뒤는 그대로인 경우
+// (2) 바로 앞 픽업 기준 — 픽업과 함께 연쇄로 같이 옮겨진 경우
+// 둘 중 하나라도 맞으면 moved=false. (픽업 자신은 그대로 브루 기준으로 판단)
+function computeChain(c,sch){
+  sch=sch||schemaBuild(c);
+  const roles=sch.order;
+  const info={};
+  let prevActual=null,prevRole=null,altActual=null,altRole=null;
+  roles.forEach((role,i)=>{
+    const actual=c[role];
+    let expected=actual,moved=false;
+    if(i>0){
+      const gapA=diff(sch.data[role],sch.data[prevRole]);
+      const expectedA=addDays(prevActual,gapA);
+      let matched=(actual===expectedA),best=expectedA;
+      if(altRole){
+        const gapB=diff(sch.data[role],sch.data[altRole]);
+        const expectedB=addDays(altActual,gapB);
+        if(actual===expectedB){matched=true;best=expectedB;}
+      }
+      expected=best;moved=!matched;
+    }
+    info[role]={actual,expected,moved,delta:diff(actual,expected)};
+    if(role.startsWith('pickup')){altActual=actual;altRole=role;}
+    else{prevActual=actual;prevRole=role;altActual=null;altRole=null;}
+  });
+  return info;
+}
+
+// 각 차수의 실제 "N차 복용 시작"(startN) 일자를 기준으로 그 뒤로 며칠째인지 계산.
+// (일반은 탕전+2일, 다이어트는 픽업+1일=탕전+3일 — 스키마가 정한 실제 시작일을 그대로 사용,
+//  단 다음 차수 "픽업 IS"는 아직 이번 차수 복용이 시작 전이라 직전 차수 복용 며칠째로 표시.
+//  딜레이된 실제 날짜 기준으로 계산)
+function computeDoseDays(c,sch){
+  sch=sch||schemaBuild(c);
+  const roles=sch.order;
+  const info={};
+  let brewNo=0,start=null,prevStart=null,prevNo=0;
+  roles.forEach(role=>{
+    const m=sch.meta[role];
+    if(m.kind==='brew'){prevStart=start;prevNo=brewNo;brewNo++;start=null;}
+    if(role==='start'+brewNo)start=c[role];
+    if(role.startsWith('pickup')){
+      if(prevStart){
+        const day=diff(c[role],prevStart)+1;
+        if(day>=1)info[role]={no:prevNo,day};
+      }
+      return;
+    }
+    if(brewNo>0&&start){
+      const day=diff(c[role],start)+1;
+      if(day>=1)info[role]={no:brewNo,day};
+    }
+  });
+  return info;
+}
+
+/* ---------- 상태 ---------- */
+let cases=[], uid=1, selected=null, filter='all', isolate=null;
+const now=new Date();
+let vy=now.getFullYear(), vm=now.getMonth();
+
+// 생년월일 6자리(YYMMDD) 입력값 -> "YY.MM.DD" 표시용 포맷
+function formatDob(dob){
+  if(!dob||dob.length!==6)return dob||'';
+  return `${dob.slice(0,2)}.${dob.slice(2,4)}.${dob.slice(4,6)}`;
+}
+
+function seed(){
+  // 예시는 건보 1명, 다이어트 1명만 — 헷갈리지 않게 최소로.
+  const base=ymd(new Date(now.getFullYear(),now.getMonth(),1));
+  [['일반',addDays(base,2),'김O수','850314'],
+   ['다이어트',addDays(base,1),'정O아','900722'],
+  ].forEach(([t,d,n,dob])=>{
+    const c={id:uid++,type:t,name:n,dob,처방:d};
+    Object.assign(c,schemaBuild(c).data);
+    cases.push(c);
+  });
+}
+
+/* ---------- 추가 ---------- */
+function addCase(){
+  const d=document.getElementById('f-date').value;
+  const type=document.getElementById('f-type').value;
+  const name=document.getElementById('f-name').value.trim()||'무명';
+  const dob=document.getElementById('f-dob').value.replace(/\D/g,'').slice(0,6);
+  if(!d){alert('처방일을 선택해 주세요');return;}
+  const c={id:uid++,type,name,dob,처방:d};
+  Object.assign(c,schemaBuild(c).data);
+  cases.push(c);
+  document.getElementById('f-name').value='';
+  document.getElementById('f-dob').value='';
+  render();
+}
+
+/* ---------- 드래그 이동 ---------- */
+let pendingMove=null;
+function moveChip(cid,role,newDate){
+  const c=cases.find(x=>x.id===cid);if(!c)return;
+  const dl=diff(newDate,c[role]);if(dl===0)return;
+  // 픽업은 "약만 일찍/늦게 받아간" 것처럼 단독으로 바뀔 수도 있어서 예쁜 선택 모달로 물어본다.
+  if(role.startsWith('pickup')){
+    pendingMove={cid,role,newDate};
+    document.getElementById('moveModal').classList.add('open');
+    return;
+  }
+  const roles=schemaBuild(c).order;
+  const idx=roles.indexOf(role);
+  roles.slice(idx).forEach(k=>c[k]=addDays(c[k],dl)); // 이 지점부터 뒤 전부 같은 간격 이동
+  render();
+}
+function resolveMove(cascade){
+  if(pendingMove){
+    const {cid,role,newDate}=pendingMove;
+    const c=cases.find(x=>x.id===cid);
+    if(c){
+      if(cascade){
+        const dl=diff(newDate,c[role]);
+        const roles=schemaBuild(c).order;
+        const idx=roles.indexOf(role);
+        roles.slice(idx).forEach(k=>c[k]=addDays(c[k],dl));
+      } else {
+        c[role]=newDate;
+      }
+    }
+  }
+  pendingMove=null;
+  document.getElementById('moveModal').classList.remove('open');
+  render();
+}
+function cancelMove(){
+  pendingMove=null;
+  document.getElementById('moveModal').classList.remove('open');
+  render(); // 패널 날짜칸이 임시로 바뀐 값을 보여주고 있었다면 원래 값으로 되돌림
+}
+
+/* ---------- 렌더 ---------- */
+function render(){
+  const isoCase=isolate?cases.find(c=>c.id===isolate):null;
+  if(!isoCase)isolate=null; // 대상이 사라졌으면 isolate 해제
+  document.getElementById('calTitle').textContent = isoCase
+    ? `${isoCase.name}님 전체 일정`
+    : `${vy}년 ${vm+1}월`;
+  document.getElementById('isolateBtn').style.display = isoCase ? 'inline-flex' : 'none';
+  const grid=document.getElementById('grid');grid.innerHTML='';
+
+  // 케이스별 순번/라벨(다이어트는 차수에 따라 동적)은 한 번만 계산해 재사용
+  const schMap={};
+  cases.forEach(c=>schMap[c.id]=schemaBuild(c));
+
+  const byDay={};
+  cases.forEach(c=>{
+    if(isolate&&c.id!==isolate)return; // isolate 중엔 그 사람만 표시
+    schMap[c.id].order.forEach(role=>{
+      const m=schMap[c.id].meta[role];
+      // isolate 중인 사람은 평소 캘린더에 숨겨지는 픽업·복용시작 등도 전부 노출
+      if(m.calHidden && c.id!==isolate)return;
+      if(filter==='brew'&&m.kind!=='brew')return;
+      (byDay[c[role]] ||= []).push({c,role});
+    });
+  });
+
+  // 이동(딜레이) 여부도 케이스별로 한 번만 계산해 재사용
+  const chainMap={};
+  cases.forEach(c=>chainMap[c.id]=computeChain(c,schMap[c.id]));
+
+  const first=new Date(vy,vm,1);
+  const start=new Date(vy,vm,1-first.getDay());
+  const todayStr=ymd(now);
+  const over=[];
+
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const ds=ymd(d),inM=d.getMonth()===vm;
+    const items=byDay[ds]||[];
+    const brew=items.filter(x=>schMap[x.c.id].meta[x.role].kind==='brew').length;
+    if(brew>MAX&&inM)over.push({date:ds,cnt:brew});
+
+    const cell=document.createElement('div');
+    cell.className='cell'+(inM?'':' mute')+(ds===todayStr?' today':'')+(d.getDay()===0?' sun':'')+(brew>MAX?' over':'');
+    cell.dataset.date=ds;
+
+    let h=`<span class="num">${d.getDate()}</span>`;
+    if(brew>0){const cl=brew>MAX?'bad':(brew===MAX?'warn':'');h+=`<span class="cnt ${cl}">탕전 ${brew}</span>`;}
+    h+='<div class="chips">';
+    items.sort((a,b)=>schMap[a.c.id].order.indexOf(a.role)-schMap[b.c.id].order.indexOf(b.role));
+    items.forEach(({c,role})=>{
+      const m=schMap[c.id].meta[role];
+      const fam=famOf(c.type);
+      const info=chainMap[c.id][role];
+      const moved=info.moved;
+      let tip='';
+      if(moved){const[,mm,dd]=info.expected.split('-');tip=` data-tip="정상 간격상 ${+mm}/${+dd} · ${info.delta>0?'+':''}${info.delta}일 이동"`;}
+      const isBrew=isBrewKind(m.kind);
+      const dot=`<span class="dot${isBrew?' dot-hidden':' dot-'+fam}"></span>`;
+      h+=`<div class="chip${isBrew?' fill-'+fam:''}${moved?' moved':''}" draggable="true" data-cid="${c.id}" data-role="${role}"${tip}>
+        ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span></div>`;
+    });
+    h+='</div>';
+    cell.innerHTML=h;grid.appendChild(cell);
+  }
+
+  bindDrag();renderAlerts(over);renderPanel();
+}
+
+function renderAlerts(over){
+  const box=document.getElementById('alerts');
+  if(!over.length){box.innerHTML='';return;}
+  const list=over.map(o=>`${o.date.slice(5).replace('-','/')} (${o.cnt}건)`).join(', ');
+  box.innerHTML=`<div class="alert"><span class="dot"></span>
+    <b>탕전 정원 초과</b><span>${list} — 하루 ${MAX}건을 넘겼어요. 칩을 다른 날로 옮겨 분산해 주세요.</span></div>`;
+}
+
+/* ---------- 드래그 바인딩 ---------- */
+let drag=null;
+function bindDrag(){
+  document.querySelectorAll('.chip').forEach(ch=>{
+    ch.addEventListener('dragstart',e=>{
+      drag={cid:+ch.dataset.cid,role:ch.dataset.role};
+      ch.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    ch.addEventListener('dragend',()=>{ch.classList.remove('dragging');drag=null;});
+    ch.addEventListener('click',()=>openCase(+ch.dataset.cid));
+    // 이름 부분만이 아니라 칩 전체에서 우클릭이 되도록(클릭 정확도 문제 방지)
+    ch.addEventListener('contextmenu',e=>{
+      e.preventDefault();e.stopPropagation();
+      showCtxMenu(e.clientX,e.clientY,+ch.dataset.cid);
+    });
+  });
+  document.querySelectorAll('.cell').forEach(cell=>{
+    cell.addEventListener('dragover',e=>{e.preventDefault();cell.classList.add('dragover');});
+    cell.addEventListener('dragleave',()=>cell.classList.remove('dragover'));
+    cell.addEventListener('drop',e=>{
+      e.preventDefault();cell.classList.remove('dragover');
+      if(drag)moveChip(drag.cid,drag.role,cell.dataset.date);
+    });
+  });
+}
+
+/* ---------- 네비 ---------- */
+function move(n){vm+=n;if(vm<0){vm=11;vy--;}if(vm>11){vm=0;vy++;}render();}
+function jumpToday(){vy=now.getFullYear();vm=now.getMonth();render();}
+function setFilter(f){filter=f;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));render();}
+
+/* ---------- 환자 이름 우클릭 메뉴 · 그 사람만 캘린더에 isolate ---------- */
+function showCtxMenu(x,y,cid){
+  const m=document.getElementById('ctxMenu');
+  m.innerHTML=`<button onclick="isolateCase(${cid})">모두 보기</button>`;
+  m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';
+}
+function hideCtxMenu(){document.getElementById('ctxMenu').style.display='none';}
+function isolateCase(id){
+  isolate=id;hideCtxMenu();
+  const c=cases.find(x=>x.id===id);
+  if(c){const d=parse(c.처방);vy=d.getFullYear();vm=d.getMonth();}
+  render();
+}
+function clearIsolate(){isolate=null;render();}
+document.addEventListener('click',hideCtxMenu);
+document.addEventListener('scroll',hideCtxMenu,true);
+
+/* ---------- 상세 패널 ---------- */
+function openCase(id){selected=id;renderPanel();}
+function closeCase(){selected=null;renderPanel();}
+function renderPanel(){
+  const p=document.getElementById('panel');
+  const c=cases.find(x=>x.id===selected);
+  if(!c){selected=null;p.className='panel';p.innerHTML='';return;}
+  const sch=schemaBuild(c);
+  const tag=c.type==='다이어트'?'t-diet':'t-gen';
+  const chain=computeChain(c,sch);
+  const dose=computeDoseDays(c,sch);
+  let h=`<div class="p-head">
+      <div>
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <div class="p-name">${c.name}</div>${c.dob?`<span class="p-dob-inline">${c.dob}</span>`:''}
+        </div>
+        <span class="p-tag ${tag}">${c.type} 한약</span>
+      </div>
+      <button class="p-x" onclick="closeCase()">×</button>
+    </div>
+    <div class="p-list">`;
+  sch.order.forEach(role=>{
+    const m=sch.meta[role];
+    const info=chain[role];
+    const cur=info.actual;
+    const dow='일월화수목금토'[parse(cur).getDay()];
+    const ds=dose[role];
+    const day=ds?`<span class="p-day">${ds.no}차 복용 ${ds.day}일차</span>`:'';
+    let mv='';
+    if(info.moved)mv=`<div class="p-move">정상 간격보다 ${info.delta>0?'+':''}${info.delta}일 밀림</div>`;
+    h+=`<div class="p-row">
+      <span class="p-dot dot-${famOf(c.type)}"></span>
+      <div class="p-main"><div class="p-label">${m.label}</div>${mv}</div>
+      <div class="p-dosecol">${day}</div>
+      <div class="p-date">
+        <input type="date" class="p-date-input" value="${cur}" onchange="moveChip(${c.id},'${role}',this.value)">
+        <span class="p-dow">${dow}</span>
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+  {
+    const n=c.cycles||2;
+    const canRemove=n>SCHEMA[c.type].minCycles;
+    h+=`<div style="display:flex;gap:8px;margin-top:18px">
+      <button class="p-btn ghost" style="flex:1" onclick="removeCycle(${c.id})"${canRemove?'':' disabled'}>− 이전 차수 삭제</button>
+      <button class="p-btn" style="flex:1" onclick="addCycle(${c.id})">＋ 다음 차수 추가</button>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--ink3);font-weight:600">현재 ${n}차까지 표시 중</div>`;
+  }
+  p.innerHTML=h;p.className='panel open';
+}
+function addCycle(id){
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  c.cycles=(c.cycles||2)+1;
+  // 새로 나타나는 차수(브루/픽업/IS)는 정석 날짜로 초기화, 기존 날짜(이동된 것 포함)는 그대로 둔다
+  const data=schemaBuild(c).data;
+  Object.keys(data).forEach(k=>{if(!(k in c))c[k]=data[k];});
+  render();
+}
+function removeCycle(id){const c=cases.find(x=>x.id===id);if(c){c.cycles=Math.max(SCHEMA[c.type].minCycles,(c.cycles||2)-1);render();}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCase();});
+// 패널이 열려 있을 때 패널 바깥(그리고 칩이 아닌 곳)을 클릭하면 패널을 닫고 캘린더로 복귀
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('panel');
+  if(!panel.classList.contains('open'))return;
+  if(panel.contains(e.target))return; // 패널 내부 클릭은 무시
+  if(e.target.closest('.chip'))return; // 칩 클릭은 openCase가 알아서 처리
+  closeCase();
+});
+
+/* ---------- 초기화 ---------- */
+document.getElementById('f-date').value=ymd(now);
+seed();
+render();
+</script>
+</body>
+</html>
