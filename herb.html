@@ -30,6 +30,10 @@
     --red-bg:#FEECEE;
     --amber:#F59F00;
     --amber-bg:#FFF4E0;
+    --green:#2FAE66;
+    --green-mid:#B7E8C7;
+    --green-d:#249256;
+    --green-bg:#E5F7EC;
     --r:16px;
     --r-sm:10px;
     --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
@@ -157,11 +161,13 @@
   /* 점 색: 한약=파랑, 다이어트=주황 (처방·HS·IS 등 탕전이 아닌 모든 칩) */
   .chip .dot.dot-gen{background:var(--blue)}
   .chip .dot.dot-diet{background:var(--orange)}
+  .chip .dot.dot-stock{background:var(--green)}
   /* 탕전(채움) 칩은 점을 투명하게 — 자리는 그대로 차지해서 이름 위치를 다른 칩과 맞춤(고정폭) */
   .chip .dot.dot-hidden{background:transparent}
   /* 탕전만 칩 전체를 옅게 채움 */
   .chip.fill-gen{background:var(--blue-mid)}
   .chip.fill-diet{background:var(--orange-mid)}
+  .chip.fill-stock{background:var(--green-mid)}
   .chip.moved{background:var(--red-bg)}
   .chip.moved .dot{background:var(--red)}
   .chip.moved .role,.chip.moved .day{color:var(--red)}
@@ -267,6 +273,7 @@
   .p-tag{display:inline-block;margin-top:7px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
   .t-gen{background:var(--blue-bg);color:var(--blue-d)}
   .t-diet{background:var(--orange-bg);color:var(--orange)}
+  .t-stock{background:var(--green-bg);color:var(--green-d)}
   .p-x{border:none;background:var(--bg);width:34px;height:34px;border-radius:10px;font-size:22px;color:var(--ink2);cursor:pointer;line-height:1}
   .p-x:hover{background:#E5E8EB}
   .p-list{display:flex;flex-direction:column;margin-top:18px}
@@ -276,6 +283,7 @@
   .p-dot{width:10px;height:10px;border-radius:50%;flex:none}
   .p-dot.dot-gen{background:var(--blue)}
   .p-dot.dot-diet{background:var(--orange)}
+  .p-dot.dot-stock{background:var(--green)}
   .p-main{min-width:0}
   .p-label{font-size:15px;font-weight:700;color:var(--ink)}
   .p-dosecol{display:flex}
@@ -320,17 +328,20 @@
   </div>
 
   <div class="add">
-    <label>처방일</label>
+    <label id="dateLabel">처방일</label>
     <input type="date" id="f-date">
     <label>종류</label>
-    <select id="f-type">
+    <select id="f-type" onchange="onTypeChange()">
       <option value="일반">일반 한약</option>
       <option value="다이어트">다이어트 한약</option>
+      <option value="상비약">상비약 탕전</option>
     </select>
-    <label>환자</label>
-    <input type="text" id="f-name" placeholder="이름">
-    <label>생년월일</label>
-    <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px">
+    <label id="nameLabel">차트 번호</label>
+    <input type="text" id="f-name" placeholder="차트 번호">
+    <span id="dobWrap" style="display:flex;gap:10px;align-items:center">
+      <label>생년월일</label>
+      <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px">
+    </span>
     <button class="btn" onclick="addCase()">추가</button>
   </div>
 
@@ -449,11 +460,22 @@ const SCHEMA={
       }
       return {order,meta,data};
     }
+  },
+  상비약:{
+    minCycles:0,
+    // 상비약 탕전: 반복 패턴 없이 그 날 하루만 존재하는 단발성 탕전. 처방일=탕전일 그 자체.
+    build(T){
+      return {order:['brew1'],meta:{brew1:{label:'상비약 탕전',kind:'brew'}},data:{brew1:T}};
+    }
   }
 };
 
-// 종류 색: 한약(일반)=파랑, 다이어트=주황으로 고정. 탕전만 칩 전체를 채우고 나머지는 점 하나로만 표시.
-function famOf(type){return type==='다이어트'?'diet':'gen';}
+// 종류 색: 한약(일반)=파랑, 다이어트=주황, 상비약=초록으로 고정. 탕전만 칩 전체를 채우고 나머지는 점 하나로만 표시.
+function famOf(type){
+  if(type==='다이어트')return 'diet';
+  if(type==='상비약')return 'stock';
+  return 'gen';
+}
 function isBrewKind(kind){return kind==='brew';}
 // 케이스 하나의 현재 스키마(순번/라벨/처방일 기준 정석 날짜)를 구성
 function schemaBuild(c){
@@ -615,10 +637,10 @@ async function persistDeleteCase(caseId){
 }
 
 function seed(){
-  // 예시는 건보 1명, 다이어트 1명만 — 헷갈리지 않게 최소로.
+  // 예시는 건보 1명, 다이어트 1명만 — 헷갈리지 않게 최소로. name은 차트 번호 예시.
   const base=ymd(new Date(now.getFullYear(),now.getMonth(),1));
-  [['일반',addDays(base,2),'김O수','850314'],
-   ['다이어트',addDays(base,1),'정O아','900722'],
+  [['일반',addDays(base,2),'10234','850314'],
+   ['다이어트',addDays(base,1),'20567','900722'],
   ].forEach(([t,d,n,dob])=>{
     const c={id:uid++,type:t,name:n,dob,처방:d};
     Object.assign(c,schemaBuild(c).data);
@@ -626,13 +648,26 @@ function seed(){
   });
 }
 
+/* ---------- 종류 선택에 따라 입력폼 라벨/필드 전환 ----------
+   상비약 탕전은 처방일/차트번호/생년월일 개념이 없는 단발성 항목이라
+   폼 라벨을 그때그때 다른 의미로 바꿔서 재사용한다. */
+function onTypeChange(){
+  const type=document.getElementById('f-type').value;
+  const isStock=type==='상비약';
+  document.getElementById('dateLabel').textContent=isStock?'탕전일':'처방일';
+  document.getElementById('nameLabel').textContent=isStock?'품목명':'차트 번호';
+  document.getElementById('f-name').placeholder=isStock?'예: 쌍화탕':'차트 번호';
+  document.getElementById('dobWrap').style.display=isStock?'none':'flex';
+}
+
 /* ---------- 추가 ---------- */
 function addCase(){
   const d=document.getElementById('f-date').value;
   const type=document.getElementById('f-type').value;
-  const name=document.getElementById('f-name').value.trim()||'무명';
-  const dob=document.getElementById('f-dob').value.replace(/\D/g,'').slice(0,6);
-  if(!d){alert('처방일을 선택해 주세요');return;}
+  const isStock=type==='상비약';
+  const name=document.getElementById('f-name').value.trim()||(isStock?'상비약':'미지정');
+  const dob=isStock?'':document.getElementById('f-dob').value.replace(/\D/g,'').slice(0,6);
+  if(!d){alert(isStock?'탕전일을 선택해 주세요':'처방일을 선택해 주세요');return;}
   const c={id:uid++,type,name,dob,memo:'',처방:d};
   Object.assign(c,schemaBuild(c).data);
   cases.push(c);
@@ -710,7 +745,7 @@ function render(){
   const isoCase=isolate?cases.find(c=>c.id===isolate):null;
   if(!isoCase)isolate=null; // 대상이 사라졌으면 isolate 해제
   document.getElementById('calTitle').textContent = isoCase
-    ? `${isoCase.name}님 전체 일정`
+    ? `${isoCase.name} 전체 일정`
     : `${vy}년 ${vm+1}월`;
   document.getElementById('isolateBtn').style.display = isoCase ? 'inline-flex' : 'none';
   const grid=document.getElementById('grid');grid.innerHTML='';
@@ -899,7 +934,7 @@ function hideRefModal(){document.getElementById('refModal').classList.remove('op
 function deleteCase(id){
   hideCtxMenu();
   const c=cases.find(x=>x.id===id);if(!c)return;
-  if(!confirm(`${c.name}님의 모든 일정을 삭제할까요?\n되돌릴 수 없어요.`))return;
+  if(!confirm(`"${c.name}" 일정을 모두 삭제할까요?\n되돌릴 수 없어요.`))return;
   cases=cases.filter(x=>x.id!==id);
   if(selected===id)selected=null;
   if(isolate===id)isolate=null;
@@ -917,7 +952,8 @@ function renderPanel(){
   const c=cases.find(x=>x.id===selected);
   if(!c){selected=null;p.className='panel';p.innerHTML='';return;}
   const sch=schemaBuild(c);
-  const tag=c.type==='다이어트'?'t-diet':'t-gen';
+  const tag=c.type==='다이어트'?'t-diet':(c.type==='상비약'?'t-stock':'t-gen');
+  const tagLabel=c.type==='상비약'?'상비약':`${c.type} 한약`;
   const chain=computeChain(c,sch);
   const dose=computeDoseDays(c,sch);
   let h=`<div class="p-head">
@@ -925,7 +961,7 @@ function renderPanel(){
         <div style="display:flex;align-items:baseline;gap:7px">
           <div class="p-name">${c.name}</div>${c.dob?`<span class="p-dob-inline">${c.dob}</span>`:''}
         </div>
-        <span class="p-tag ${tag}">${c.type} 한약</span>
+        <span class="p-tag ${tag}">${tagLabel}</span>
       </div>
       <button class="p-x" onclick="closeCase()">×</button>
     </div>
@@ -955,7 +991,7 @@ function renderPanel(){
     </div>`;
   });
   h+='</div>';
-  {
+  if(c.type!=='상비약'){
     const n=c.cycles||2;
     const canRemove=n>SCHEMA[c.type].minCycles;
     h+=`<div style="display:flex;gap:8px;margin-top:18px">
@@ -964,7 +1000,7 @@ function renderPanel(){
     </div>`;
   }
   h+=`<div class="p-sub">메모</div>
-    <textarea class="p-memo" placeholder="이 환자에 대한 메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)">${c.memo||''}</textarea>`;
+    <textarea class="p-memo" placeholder="메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)">${c.memo||''}</textarea>`;
   p.innerHTML=h;p.className='panel open';
 }
 function saveMemo(id,memo){
