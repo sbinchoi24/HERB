@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#F2F4F6;
@@ -478,6 +479,63 @@ function formatDob(dob){
   return `${dob.slice(0,2)}.${dob.slice(2,4)}.${dob.slice(4,6)}`;
 }
 
+/* ---------- Supabase 연동 ----------
+   cases 테이블: id,type,name,dob,prescribed_date,cycles
+   case_dates 테이블: case_id,role,date (환자별 각 일정 실제 날짜, 차수만큼 동적으로 쌓임)
+   ⚠ 이 파일은 정적 HTML이라 anon key가 소스에 그대로 노출됩니다.
+      RLS를 전체 허용으로 열어뒀기 때문에, 이 키를 아는 사람은 누구나 환자 데이터에 접근할 수 있어요.
+*/
+const SUPABASE_URL='https://qkxwtwxjfrkrhgmhnicl.supabase.co';
+const SUPABASE_KEY='sb_publishable_QV6GMX7okH8wMvtqYYBW_w_JzCnLPxf';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const CORE_FIELDS=['id','type','name','dob','처방','cycles'];
+
+async function loadFromDB(){
+  try{
+    const [{data:caseRows,error:e1},{data:dateRows,error:e2}]=await Promise.all([
+      sb.from('cases').select('*').order('id'),
+      sb.from('case_dates').select('*'),
+    ]);
+    if(e1||e2)throw e1||e2;
+    if(!caseRows.length){
+      seed();
+      for(const c of cases)await persistNewCase(c);
+      return;
+    }
+    cases=caseRows.map(r=>({id:r.id,type:r.type,name:r.name,dob:r.dob,처방:r.prescribed_date,cycles:r.cycles}));
+    uid=Math.max(0,...caseRows.map(r=>r.id))+1;
+    dateRows.forEach(dr=>{
+      const c=cases.find(x=>x.id===dr.case_id);
+      if(c)c[dr.role]=dr.date;
+    });
+  }catch(err){
+    console.error('Supabase 연결 실패, 로컬 임시 데이터로 표시:',err);
+    seed();
+  }
+}
+async function persistNewCase(c){
+  try{
+    const{data,error}=await sb.from('cases').insert({
+      type:c.type,name:c.name,dob:c.dob,prescribed_date:c.처방,cycles:c.cycles||2
+    }).select().single();
+    if(error)throw error;
+    c.id=data.id;
+    const rows=Object.keys(c).filter(k=>!CORE_FIELDS.includes(k)).map(role=>({case_id:c.id,role,date:c[role]}));
+    if(rows.length){const{error:e2}=await sb.from('case_dates').insert(rows);if(e2)throw e2;}
+    render();
+  }catch(err){console.error('환자 저장 실패:',err);}
+}
+async function persistDates(caseId,roleDateMap){
+  const rows=Object.entries(roleDateMap).map(([role,date])=>({case_id:caseId,role,date}));
+  if(!rows.length)return;
+  try{const{error}=await sb.from('case_dates').upsert(rows,{onConflict:'case_id,role'});if(error)throw error;}
+  catch(err){console.error('일정 저장 실패:',err);}
+}
+async function persistCycles(caseId,cycles){
+  try{const{error}=await sb.from('cases').update({cycles}).eq('id',caseId);if(error)throw error;}
+  catch(err){console.error('차수 저장 실패:',err);}
+}
+
 function seed(){
   // 예시는 건보 1명, 다이어트 1명만 — 헷갈리지 않게 최소로.
   const base=ymd(new Date(now.getFullYear(),now.getMonth(),1));
@@ -503,10 +561,19 @@ function addCase(){
   document.getElementById('f-name').value='';
   document.getElementById('f-dob').value='';
   render();
+  persistNewCase(c);
 }
 
 /* ---------- 드래그 이동 ---------- */
 let pendingMove=null;
+// role부터 뒤 전부 같은 간격으로 이동시키고, 바뀐{role:date} 맵을 돌려준다(DB 저장용)
+function cascadeShift(c,role,dl){
+  const roles=schemaBuild(c).order;
+  const idx=roles.indexOf(role);
+  const changed={};
+  roles.slice(idx).forEach(k=>{c[k]=addDays(c[k],dl);changed[k]=c[k];});
+  return changed;
+}
 function moveChip(cid,role,newDate){
   const c=cases.find(x=>x.id===cid);if(!c)return;
   const dl=diff(newDate,c[role]);if(dl===0)return;
@@ -516,10 +583,9 @@ function moveChip(cid,role,newDate){
     document.getElementById('moveModal').classList.add('open');
     return;
   }
-  const roles=schemaBuild(c).order;
-  const idx=roles.indexOf(role);
-  roles.slice(idx).forEach(k=>c[k]=addDays(c[k],dl)); // 이 지점부터 뒤 전부 같은 간격 이동
+  const changed=cascadeShift(c,role,dl);
   render();
+  persistDates(c.id,changed);
 }
 function resolveMove(cascade){
   if(pendingMove){
@@ -528,11 +594,11 @@ function resolveMove(cascade){
     if(c){
       if(cascade){
         const dl=diff(newDate,c[role]);
-        const roles=schemaBuild(c).order;
-        const idx=roles.indexOf(role);
-        roles.slice(idx).forEach(k=>c[k]=addDays(c[k],dl));
+        const changed=cascadeShift(c,role,dl);
+        persistDates(c.id,changed);
       } else {
         c[role]=newDate;
+        persistDates(c.id,{[role]:newDate});
       }
     }
   }
@@ -729,10 +795,18 @@ function addCycle(id){
   c.cycles=(c.cycles||2)+1;
   // 새로 나타나는 차수(브루/픽업/IS)는 정석 날짜로 초기화, 기존 날짜(이동된 것 포함)는 그대로 둔다
   const data=schemaBuild(c).data;
-  Object.keys(data).forEach(k=>{if(!(k in c))c[k]=data[k];});
+  const added={};
+  Object.keys(data).forEach(k=>{if(!(k in c)){c[k]=data[k];added[k]=data[k];}});
   render();
+  persistCycles(c.id,c.cycles);
+  persistDates(c.id,added);
 }
-function removeCycle(id){const c=cases.find(x=>x.id===id);if(c){c.cycles=Math.max(SCHEMA[c.type].minCycles,(c.cycles||2)-1);render();}}
+function removeCycle(id){
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  c.cycles=Math.max(SCHEMA[c.type].minCycles,(c.cycles||2)-1);
+  render();
+  persistCycles(c.id,c.cycles);
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCase();});
 // 패널이 열려 있을 때 패널 바깥(그리고 칩이 아닌 곳)을 클릭하면 패널을 닫고 캘린더로 복귀
 document.addEventListener('click',e=>{
@@ -745,8 +819,7 @@ document.addEventListener('click',e=>{
 
 /* ---------- 초기화 ---------- */
 document.getElementById('f-date').value=ymd(now);
-seed();
-render();
+loadFromDB().then(render);
 </script>
 </body>
 </html>
