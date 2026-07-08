@@ -338,10 +338,10 @@
       <button type="button" data-type="상비약" onclick="setAddType('상비약')">상비</button>
     </div>
     <label id="nameLabel">차트 번호</label>
-    <input type="text" id="f-name" placeholder="차트 번호">
+    <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off">
     <span id="dobWrap" style="display:flex;gap:10px;align-items:center">
       <label>생년월일</label>
-      <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px">
+      <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px" autocomplete="off">
     </span>
     <button class="btn" onclick="addCase()">추가</button>
   </div>
@@ -384,8 +384,8 @@
 <div class="modal-overlay" id="pwModal" onclick="cancelPw()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-title">편집 권한 비밀번호를 입력하세요</div>
-    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off"
-      style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none"
+    <input type="text" id="pwInput" name="herb-edit-code" placeholder="비밀번호" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore
+      style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none;-webkit-text-security:disc;text-security:disc"
       onkeydown="if(event.key==='Enter')submitPw()">
     <div id="pwError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:-4px 0 10px 2px">비밀번호가 올바르지 않아요</div>
     <button class="modal-btn primary" onclick="submitPw()">확인</button>
