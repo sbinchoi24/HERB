@@ -322,20 +322,21 @@
       <h1>탕전 일정</h1>
     </div>
     <div style="display:flex;gap:8px">
+      <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
       <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
       <button class="btn ghost" onclick="jumpToday()">오늘로</button>
     </div>
   </div>
 
-  <div class="add">
+  <div class="add" id="addForm">
     <label id="dateLabel">처방일</label>
     <input type="date" id="f-date">
     <label>종류</label>
-    <select id="f-type" onchange="onTypeChange()">
-      <option value="일반">일반 한약</option>
-      <option value="다이어트">다이어트 한약</option>
-      <option value="상비약">상비약 탕전</option>
-    </select>
+    <div class="seg" id="typeToggle">
+      <button type="button" class="on" data-type="일반" onclick="setAddType('일반')">일반 한약</button>
+      <button type="button" data-type="다이어트" onclick="setAddType('다이어트')">다이어트 한약</button>
+      <button type="button" data-type="상비약" onclick="setAddType('상비약')">상비약 탕전</button>
+    </div>
     <label id="nameLabel">차트 번호</label>
     <input type="text" id="f-name" placeholder="차트 번호">
     <span id="dobWrap" style="display:flex;gap:10px;align-items:center">
@@ -344,6 +345,7 @@
     </span>
     <button class="btn" onclick="addCase()">추가</button>
   </div>
+  <div id="lockNotice" class="sub" style="display:none;margin:-6px 0 16px 2px">🔒 보기 전용 모드예요. 편집하려면 위의 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</div>
 
   <div id="alerts"></div>
 
@@ -376,6 +378,18 @@
     <label class="modal-check"><input type="checkbox" id="moveAfterChk"> 이후 일정도 같이 옮기기</label>
     <button class="modal-btn primary" onclick="resolveMove()">적용</button>
     <button class="modal-cancel" onclick="cancelMove()">취소</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pwModal" onclick="cancelPw()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-title">편집 권한 비밀번호를 입력하세요</div>
+    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off"
+      style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none"
+      onkeydown="if(event.key==='Enter')submitPw()">
+    <div id="pwError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:-4px 0 10px 2px">비밀번호가 올바르지 않아요</div>
+    <button class="modal-btn primary" onclick="submitPw()">확인</button>
+    <button class="modal-cancel" onclick="cancelPw()">취소</button>
   </div>
 </div>
 
@@ -648,22 +662,67 @@ function seed(){
   });
 }
 
-/* ---------- 종류 선택에 따라 입력폼 라벨/필드 전환 ----------
-   상비약 탕전은 처방일/차트번호/생년월일 개념이 없는 단발성 항목이라
-   폼 라벨을 그때그때 다른 의미로 바꿔서 재사용한다. */
+/* ---------- 종류 선택(버튼 토글) ----------
+   스크롤 드롭다운 대신 버튼으로 직접 선택. 상비약 탕전은 처방일/차트번호/생년월일
+   개념이 없는 단발성 항목이라 선택에 따라 폼 라벨을 그때그때 다른 의미로 바꿔서 재사용한다. */
+let addType='일반';
+function setAddType(type){
+  addType=type;
+  document.querySelectorAll('#typeToggle button').forEach(b=>b.classList.toggle('on',b.dataset.type===type));
+  onTypeChange();
+}
 function onTypeChange(){
-  const type=document.getElementById('f-type').value;
-  const isStock=type==='상비약';
+  const isStock=addType==='상비약';
   document.getElementById('dateLabel').textContent=isStock?'탕전일':'처방일';
   document.getElementById('nameLabel').textContent=isStock?'품목명':'차트 번호';
   document.getElementById('f-name').placeholder=isStock?'예: 쌍화탕':'차트 번호';
   document.getElementById('dobWrap').style.display=isStock?'none':'flex';
 }
 
+/* ---------- 편집 권한(비밀번호 잠금) ----------
+   편집 권한이 없으면 조회(달력 탐색·환자 열람·기준일 안내)만 가능하고
+   추가/이동/삭제/메모/차수 변경 등 데이터를 바꾸는 동작은 전부 막는다.
+   한 번 잠금 해제하면 이 브라우저에서는 계속 풀린 상태로 유지된다(localStorage). */
+const EDIT_PASSWORDS=['라피엘1**','fkvldpf1**','FKVLDPF1**'];
+let editUnlocked=localStorage.getItem('herb_edit_unlocked')==='1';
+function requireEdit(){
+  if(!editUnlocked){alert('편집 권한이 필요해요. 상단의 "편집 권한" 버튼을 눌러 비밀번호를 입력해 주세요.');return false;}
+  return true;
+}
+function toggleEdit(){
+  if(editUnlocked){
+    if(confirm('편집 권한을 잠글까요?')){
+      editUnlocked=false;
+      localStorage.removeItem('herb_edit_unlocked');
+      render();
+    }
+    return;
+  }
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwError').style.display='none';
+  document.getElementById('pwModal').classList.add('open');
+  setTimeout(()=>document.getElementById('pwInput').focus(),50);
+}
+function submitPw(){
+  const pw=document.getElementById('pwInput').value;
+  if(EDIT_PASSWORDS.includes(pw)){
+    editUnlocked=true;
+    localStorage.setItem('herb_edit_unlocked','1');
+    document.getElementById('pwModal').classList.remove('open');
+    render();
+  }else{
+    document.getElementById('pwError').style.display='block';
+  }
+}
+function cancelPw(){
+  document.getElementById('pwModal').classList.remove('open');
+}
+
 /* ---------- 추가 ---------- */
 function addCase(){
+  if(!requireEdit())return;
   const d=document.getElementById('f-date').value;
-  const type=document.getElementById('f-type').value;
+  const type=addType;
   const isStock=type==='상비약';
   const name=document.getElementById('f-name').value.trim()||(isStock?'상비약':'미지정');
   const dob=isStock?'':document.getElementById('f-dob').value.replace(/\D/g,'').slice(0,6);
@@ -688,6 +747,7 @@ function cascadeShift(c,role,dl){
   return changed;
 }
 function moveChip(cid,role,newDate){
+  if(!requireEdit())return;
   const c=cases.find(x=>x.id===cid);if(!c)return;
   const dl=diff(newDate,c[role]);if(dl===0)return;
   // 픽업은 "약만 일찍/늦게 받아간" 것처럼 단독으로 바뀔 수도 있어서 예쁜 선택 모달로 물어본다.
@@ -705,6 +765,7 @@ function moveChip(cid,role,newDate){
 // 픽업 role(pickupN) -> 같은 차수의 탕전 role(brewN)
 function brewRoleOf(role){return role.replace('pickup','brew');}
 function resolveMove(){
+  if(!requireEdit()){cancelMove();return;}
   if(pendingMove){
     const {cid,role,newDate}=pendingMove;
     const c=cases.find(x=>x.id===cid);
@@ -742,6 +803,9 @@ function cancelMove(){
 
 /* ---------- 렌더 ---------- */
 function render(){
+  document.getElementById('addForm').style.display=editUnlocked?'flex':'none';
+  document.getElementById('lockNotice').style.display=editUnlocked?'none':'block';
+  document.getElementById('editBtn').textContent=editUnlocked?'🔓 편집 중 (잠그기)':'🔒 편집 권한';
   const isoCase=isolate?cases.find(c=>c.id===isolate):null;
   if(!isoCase)isolate=null; // 대상이 사라졌으면 isolate 해제
   document.getElementById('calTitle').textContent = isoCase
@@ -799,7 +863,7 @@ function render(){
       if(moved){const[,mm,dd]=info.expected.split('-');tip=` data-tip="정상 간격상 ${+mm}/${+dd} · ${info.delta>0?'+':''}${info.delta}일 이동"`;}
       const isBrew=isBrewKind(m.kind);
       const dot=`<span class="dot${isBrew?' dot-hidden':' dot-'+fam}"></span>`;
-      h+=`<div class="chip${isBrew?' fill-'+fam:''}${moved?' moved':''}" draggable="true" data-cid="${c.id}" data-role="${role}"${tip}>
+      h+=`<div class="chip${isBrew?' fill-'+fam:''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
         ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span></div>`;
     });
     h+='</div>';
@@ -822,6 +886,7 @@ let drag=null;
 function bindDrag(){
   document.querySelectorAll('.chip').forEach(ch=>{
     ch.addEventListener('dragstart',e=>{
+      if(!editUnlocked){e.preventDefault();return;}
       drag={cid:+ch.dataset.cid,role:ch.dataset.role};
       ch.classList.add('dragging');
       e.dataTransfer.effectAllowed='move';
@@ -852,7 +917,8 @@ function setFilter(f){filter=f;document.querySelectorAll('.seg button').forEach(
 /* ---------- 환자 이름 우클릭 메뉴 · 그 사람만 캘린더에 isolate / 전체 삭제 ---------- */
 function showCtxMenu(x,y,cid){
   const m=document.getElementById('ctxMenu');
-  m.innerHTML=`<button onclick="isolateCase(${cid})">모두 보기</button><button class="danger" onclick="deleteCase(${cid})">모두 삭제하기</button>`;
+  m.innerHTML=`<button onclick="isolateCase(${cid})">모두 보기</button>`+
+    (editUnlocked?`<button class="danger" onclick="deleteCase(${cid})">모두 삭제하기</button>`:'');
   m.style.left=x+'px';m.style.top=y+'px';m.style.display='block';
 }
 function hideCtxMenu(){document.getElementById('ctxMenu').style.display='none';}
@@ -933,6 +999,7 @@ function showRefModal(){
 function hideRefModal(){document.getElementById('refModal').classList.remove('open');}
 function deleteCase(id){
   hideCtxMenu();
+  if(!requireEdit())return;
   const c=cases.find(x=>x.id===id);if(!c)return;
   if(!confirm(`"${c.name}" 일정을 모두 삭제할까요?\n되돌릴 수 없어요.`))return;
   cases=cases.filter(x=>x.id!==id);
@@ -985,7 +1052,7 @@ function renderPanel(){
       <div class="p-main"><div class="p-label">${m.label}</div>${mv}</div>
       <div class="p-dosecol">${day}</div>
       <div class="p-date">
-        <input type="date" class="p-date-input" value="${cur}" onchange="moveChip(${c.id},'${role}',this.value)">
+        <input type="date" class="p-date-input" value="${cur}" onchange="moveChip(${c.id},'${role}',this.value)"${editUnlocked?'':' disabled'}>
         <span class="p-dow">${dow}</span>
       </div>
     </div>`;
@@ -993,22 +1060,24 @@ function renderPanel(){
   h+='</div>';
   if(c.type!=='상비약'){
     const n=c.cycles||2;
-    const canRemove=n>SCHEMA[c.type].minCycles;
+    const canRemove=n>SCHEMA[c.type].minCycles&&editUnlocked;
     h+=`<div style="display:flex;gap:8px;margin-top:18px">
       <button class="p-btn ghost" style="flex:1" onclick="removeCycle(${c.id})"${canRemove?'':' disabled'}>− 이전 차수 삭제</button>
-      <button class="p-btn" style="flex:1" onclick="addCycle(${c.id})">＋ 다음 차수 추가</button>
+      <button class="p-btn" style="flex:1" onclick="addCycle(${c.id})"${editUnlocked?'':' disabled'}>＋ 다음 차수 추가</button>
     </div>`;
   }
   h+=`<div class="p-sub">메모</div>
-    <textarea class="p-memo" placeholder="메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)">${c.memo||''}</textarea>`;
+    <textarea class="p-memo" placeholder="메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)"${editUnlocked?'':' disabled'}>${c.memo||''}</textarea>`;
   p.innerHTML=h;p.className='panel open';
 }
 function saveMemo(id,memo){
+  if(!requireEdit())return;
   const c=cases.find(x=>x.id===id);if(!c)return;
   c.memo=memo;
   persistMemo(id,memo);
 }
 function addCycle(id){
+  if(!requireEdit())return;
   const c=cases.find(x=>x.id===id);if(!c)return;
   c.cycles=(c.cycles||2)+1;
   // 새로 나타나는 차수(브루/픽업/IS)는 정석 날짜로 초기화, 기존 날짜(이동된 것 포함)는 그대로 둔다
@@ -1020,6 +1089,7 @@ function addCycle(id){
   persistDates(c.id,added);
 }
 function removeCycle(id){
+  if(!requireEdit())return;
   const c=cases.find(x=>x.id===id);if(!c)return;
   c.cycles=Math.max(SCHEMA[c.type].minCycles,(c.cycles||2)-1);
   render();
