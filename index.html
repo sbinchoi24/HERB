@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HERB</title>
+<title>탕전 | 경희라피엘한의원</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -318,16 +318,20 @@
   }
   .p-memo:focus{border-color:var(--blue)}
 
-  /* 내원 ✕ (전화상담) 토글 버튼 — 상하좌우 패딩 동일 */
+  /* 미내원(전화상담) 토글 — 동그란 점 인디케이터가 있는 pill 버튼 */
   .phone-toggle{
-    display:inline-block;
-    font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
-    border:1.5px solid var(--red);color:var(--red);background:#fff;
-    border-radius:8px;padding:6px 6px;line-height:1;
-    transition:background .15s,color .15s;
+    display:inline-flex;align-items:center;gap:6px;margin-top:9px;
+    font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+    border:1.5px solid var(--line);color:var(--ink3);background:#fff;
+    border-radius:20px;padding:6px 12px;line-height:1;
+    transition:border-color .15s,color .15s,background .15s;
   }
-  .phone-toggle.on{background:var(--red);color:#fff}
+  .phone-toggle:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+  .phone-toggle .ptg-dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);flex:none;transition:background .15s}
+  .phone-toggle.on{border-color:var(--red);background:var(--red);color:#fff}
+  .phone-toggle.on .ptg-dot{background:#fff}
   .phone-toggle:disabled{opacity:.4;cursor:not-allowed}
+  .phone-toggle:disabled:hover{border-color:var(--line);color:var(--ink3)}
 </style>
 </head>
 <body>
@@ -1091,15 +1095,14 @@ function renderPanel(){
         : `<div class="p-move">정상 간격보다 ${info.delta>0?'+':''}${info.delta}일 밀림</div>`;
     }
     const phoneBtn=isConsultRole
-      ?`<button class="phone-toggle${phoneActive?' on':''}" onclick="event.stopPropagation();togglePhone(${c.id},'${role}')"${editUnlocked?'':' disabled'}>내원 ✕</button>`
+      ?`<button class="phone-toggle${phoneActive?' on':''}" onclick="event.stopPropagation();togglePhone(${c.id},'${role}')"${editUnlocked?'':' disabled'}><span class="ptg-dot"></span>미내원</button>`
       :'';
     h+=`<div class="p-row">
       <span class="p-dot dot-${famOf(c.type)}"></span>
       <div class="p-main">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div class="p-label">${m.label}</div>${phoneBtn}
-        </div>
+        <div class="p-label">${m.label}</div>
         ${mv}
+        ${phoneBtn}
       </div>
       <div class="p-dosecol">${day}</div>
       <div class="p-date">
