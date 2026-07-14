@@ -514,8 +514,11 @@
 <div class="modal-overlay" id="pwModal" onclick="cancelPw()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-title">편집 권한 비밀번호를 입력하세요</div>
-    <input type="password" id="pwInput" name="herb-edit-code" placeholder="비밀번호" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore
+    <input type="text" id="pwInput" name="herb-edit-code" placeholder="비밀번호" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore
       style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none"
+      oninput="handlePwInput(event)"
+      oncompositionstart="pwComposing=true"
+      oncompositionend="pwComposing=false;handlePwInput(event)"
       onkeydown="if(event.key==='Enter')submitPw()">
     <div id="pwError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:-4px 0 10px 2px">비밀번호가 올바르지 않아요</div>
     <button class="modal-btn primary" onclick="submitPw()">확인</button>
@@ -868,6 +871,25 @@ function requireEdit(){
   if(!editUnlocked){alert('편집 권한이 필요해요. 상단의 "편집 권한" 버튼을 눌러 비밀번호를 입력해 주세요.');return false;}
   return true;
 }
+/* 비밀번호 입력칸: 실제 입력값은 pwReal에 따로 저장하고 화면엔 ●로만 표시한다.
+   한글은 자음+모음을 조합해서 한 글자가 완성되는 방식이라, 조합 중(예: ㄹ→라)인
+   구간은 브라우저가 IME 조합 상태를 그대로 보여줘서 이 부분만 CSS/JS로 못 가린다.
+   대신 한 글자(음절)가 완성되는 즉시(compositionend) 바로 점으로 바꿔서,
+   최대한 빠르게 마스킹되도록 처리한다. */
+let pwReal='';
+let pwComposing=false;
+function handlePwInput(e){
+  if(pwComposing)return; // 조합 중에는 건드리지 않음(건드리면 IME 조합이 깨짐)
+  const el=e.target;
+  const val=el.value;
+  if(val.length>pwReal.length){
+    pwReal+=val.slice(pwReal.length);
+  }else if(val.length<pwReal.length){
+    pwReal=pwReal.slice(0,val.length);
+  }
+  el.value='●'.repeat(pwReal.length);
+  el.setSelectionRange(el.value.length,el.value.length);
+}
 function toggleEdit(){
   if(editUnlocked){
     if(confirm('편집 권한을 잠글까요?')){
@@ -877,14 +899,14 @@ function toggleEdit(){
     }
     return;
   }
+  pwReal='';pwComposing=false;
   document.getElementById('pwInput').value='';
   document.getElementById('pwError').style.display='none';
   document.getElementById('pwModal').classList.add('open');
   setTimeout(()=>document.getElementById('pwInput').focus(),50);
 }
 function submitPw(){
-  const pw=document.getElementById('pwInput').value;
-  if(EDIT_PASSWORDS.includes(pw)){
+  if(EDIT_PASSWORDS.includes(pwReal)){
     editUnlocked=true;
     localStorage.setItem('herb_edit_unlocked','1');
     document.getElementById('pwModal').classList.remove('open');
@@ -894,6 +916,7 @@ function submitPw(){
   }
 }
 function cancelPw(){
+  pwReal='';pwComposing=false;
   document.getElementById('pwModal').classList.remove('open');
 }
 
@@ -1267,23 +1290,26 @@ function renderPanel(){
         <span class="p-tag ${tag}">${tagLabel}</span>
       </div>
       <button class="p-x" onclick="closeCase()">×</button>
-    </div>`;
+    </div>
+    <div class="p-list">`;
   if(c.type==='상비약'){
     const group=cases.filter(x=>x.type==='상비약'&&x.name===c.name)
       .slice().sort((a,b)=>diff(b.brew1,a.brew1));
-    if(group.length>1){
-      h+=`<div class="p-sub" style="margin-top:14px">등록 이력 · 최신순 (${group.length}건)</div>
-        <div class="p-history">`+group.map(g=>{
-          const active=g.id===c.id;
-          const dow='일월화수목금토'[parse(g.brew1).getDay()];
-          const [,mm,dd]=g.brew1.split('-');
-          return `<button class="p-history-item${active?' active':''}" onclick="openCase(${g.id})">
-            <span>${+mm}/${+dd}</span><span class="p-history-dow">${dow}</span>
-          </button>`;
-        }).join('')+`</div>`;
-    }
-  }
-  h+=`<div class="p-list">`;
+    group.forEach(g=>{
+      const cur=g.brew1;
+      const dow='일월화수목금토'[parse(cur).getDay()];
+      h+=`<div class="p-row">
+        <span class="p-dot dot-stock"></span>
+        <div class="p-main"><div class="p-label">상비약 탕전</div></div>
+        <div class="p-dosecol"></div>
+        <div class="p-date">
+          <input type="date" class="p-date-input" value="${cur}" onchange="moveChip(${g.id},'brew1',this.value)"${editUnlocked?'':' disabled'}>
+          <span class="p-dow">${dow}</span>
+        </div>
+      </div>`;
+    });
+    h+='</div>';
+  } else {
   sch.order.forEach(role=>{
     const m=sch.meta[role];
     const info=chain[role];
@@ -1320,6 +1346,7 @@ function renderPanel(){
     </div>`;
   });
   h+='</div>';
+  }
   if(c.type!=='상비약'){
     const n=c.cycles||2;
     const canRemove=n>SCHEMA[c.type].minCycles&&editUnlocked;
