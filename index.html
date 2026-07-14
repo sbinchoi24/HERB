@@ -37,6 +37,7 @@
     --r:20px;
     --r-sm:10px;
     --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+    --shell:1800px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -46,19 +47,24 @@
     padding:0 20px 80px;
     line-height:1.4;
   }
-  .wrap{width:min(1540px, calc(100% - 44px));margin:0 auto}
+  .wrap{width:min(var(--shell), calc(100% - 44px));margin:0 auto}
 
-  /* 사이트 최상단: 흰 배경 바 + 병원명 + 관리자 메뉴 (참고 사이트의 .top 과 동일한 톤) */
+  /* 사이트 최상단: 흰 배경 바 + 병원명 + 관리자 메뉴 (참고 사이트의 .top 과 동일한 톤/정렬 공식) */
   .site-top-bar{
     margin:0 -20px 28px;height:72px;
     background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+    padding-left:max(14px, calc((100vw - (var(--shell) + 60px))/2));
+    padding-right:max(22px, calc((100vw - var(--shell))/2));
   }
-  .site-top-inner{width:min(1540px, calc(100% - 44px));margin:0 auto;height:100%;display:flex;align-items:center}
   .site-top{display:flex;align-items:center;justify-content:space-between;width:100%}
   .site-name{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.2px}
   .site-admin{display:flex;align-items:center;gap:10px}
   .lock-hint{display:none;align-items:center;font-size:12.5px;color:var(--ink3);font-weight:600;white-space:nowrap}
-  .today-badge{background:#F2F7FF;color:#286AB9;border-radius:13px;padding:11px 16px;font-weight:800;font-size:14px;white-space:nowrap}
+  .today-badge{
+    background:#F2F7FF;color:#286AB9;border-radius:var(--r-sm);
+    padding:11px 18px;font-weight:700;font-size:15px;white-space:nowrap;
+  }
 
   /* 페이지 헤더: 큰 제목 + 오늘 날짜 / 우측 액션 버튼 */
   .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -82,8 +88,16 @@
   }
   .nav-arrow:hover{background:#E5E8EB}
 
-  h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  h1{font-size:38px;font-weight:800;letter-spacing:-.5px}
   .sub{color:var(--ink3);font-size:14px;margin-top:4px;font-weight:500}
+
+  /* 페이지 헤더: 큰 제목 + 우측 상단 툴바(근무표의 '월간/직원별'과 동일한 위치/스타일) */
+  .page-head{position:relative;margin-bottom:20px}
+  .toolbar{position:absolute;right:0;top:8px;display:flex;align-items:center;gap:9px}
+  .views{display:flex;background:var(--line);padding:4px;border-radius:13px}
+  .views button{border:none;background:transparent;border-radius:9px;padding:10px 16px;
+    font-family:inherit;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;transition:all .15s}
+  .views button.on{background:#fff;color:var(--ink)}
 
   /* add form */
   .add{
@@ -398,35 +412,34 @@
 </head>
 <body>
 <div class="site-top-bar">
-  <div class="site-top-inner">
-    <div class="site-top">
-      <div class="site-name">경희라피엘한의원</div>
-      <div class="site-admin">
-        <span id="lockNotice" class="lock-hint">🔒 보기 전용 모드예요. 편집하려면 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</span>
-        <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
-        <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
-        <div class="today-badge" id="todayLine"></div>
-      </div>
+  <div class="site-top">
+    <div class="site-name">경희라피엘한의원</div>
+    <div class="site-admin">
+      <span id="lockNotice" class="lock-hint">🔒 보기 전용 모드예요. 편집하려면 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</span>
+      <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
+      <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
+      <div class="today-badge" id="todayLine"></div>
     </div>
   </div>
 </div>
 <div class="wrap">
   <div class="page-head">
     <h1 style="margin:4px 0 0;text-align:left">탕전 일정</h1>
+    <div class="toolbar">
+      <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
+      <div class="views">
+        <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
+        <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
+        <button data-f="consult" onclick="setFilter('consult')">상담만</button>
+      </div>
+    </div>
   </div>
 
   <div id="alerts"></div>
 
   <div class="main-grid">
     <div class="cal">
-      <div class="cal-head-top">
-        <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
-        <div class="seg">
-          <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
-          <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
-          <button data-f="consult" onclick="setFilter('consult')">상담만</button>
-        </div>
-      </div>
+      
       <div class="cal-title-row">
         <button class="nav-arrow" onclick="move(-1)">‹</button>
         <div class="cal-title" id="calTitle"></div>
@@ -1114,7 +1127,7 @@ function bindDrag(){
 /* ---------- 네비 ---------- */
 function move(n){vm+=n;if(vm<0){vm=11;vy--;}if(vm>11){vm=0;vy++;}render();}
 function jumpToday(){vy=now.getFullYear();vm=now.getMonth();render();}
-function setFilter(f){filter=f;document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));render();}
+function setFilter(f){filter=f;document.querySelectorAll('.views button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));render();}
 
 /* ---------- 환자 이름 우클릭 메뉴 · 그 사람만 캘린더에 isolate / 전체 삭제 ---------- */
 function showCtxMenu(x,y,cid){
