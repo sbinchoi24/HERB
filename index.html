@@ -58,7 +58,7 @@
     padding-right:max(22px, calc((100vw - var(--shell))/2));
   }
   .site-top{display:flex;align-items:center;justify-content:space-between;width:100%}
-  .site-name{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.2px}
+  .site-name{font-size:21px;font-weight:700;color:var(--ink);letter-spacing:-.2px}
   .site-admin{display:flex;align-items:center;gap:10px}
   .lock-hint{display:none;align-items:center;font-size:12.5px;color:var(--ink3);font-weight:600;white-space:nowrap}
   .today-badge{
@@ -88,7 +88,7 @@
   }
   .nav-arrow:hover{background:#E5E8EB}
 
-  h1{font-size:38px;font-weight:800;letter-spacing:-.5px}
+  h1{font-size:38px;font-weight:700;letter-spacing:-.5px}
   .sub{color:var(--ink3);font-size:14px;margin-top:4px;font-weight:500}
 
   /* 페이지 헤더: 큰 제목 + 우측 상단 툴바(근무표의 '월간/직원별'과 동일한 위치/스타일) */
@@ -98,6 +98,13 @@
   .views button{border:none;background:transparent;border-radius:9px;padding:10px 16px;
     font-family:inherit;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;transition:all .15s}
   .views button.on{background:#fff;color:var(--ink)}
+  .goto-today{
+    height:46px;border:none;border-radius:11px;background:transparent;
+    color:var(--ink);padding:0 14px;font-family:inherit;font-size:14px;font-weight:600;
+    cursor:pointer;transition:background .15s;
+  }
+  .goto-today:hover{background:var(--line)}
+  .goto-today.active{font-weight:700}
 
   /* add form */
   .add{
@@ -427,6 +434,7 @@
     <h1 style="margin:4px 0 0;text-align:left">탕전 일정</h1>
     <div class="toolbar">
       <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
+      <button class="goto-today" id="todayMoveBtn" type="button" onclick="jumpToday()">오늘 날짜로 이동</button>
       <div class="views">
         <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
         <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
@@ -982,6 +990,8 @@ function render(){
     ? `${isoCase.name} 전체 일정`
     : `${vy}년 ${vm+1}월`;
   document.getElementById('isolateBtn').style.display = isoCase ? 'inline-flex' : 'none';
+  const gtBtn=document.getElementById('todayMoveBtn');
+  if(gtBtn) gtBtn.classList.toggle('active', vy===now.getFullYear() && vm===now.getMonth());
   const grid=document.getElementById('grid');grid.innerHTML='';
 
   // 케이스별 순번/라벨(다이어트는 차수에 따라 동적)은 한 번만 계산해 재사용
