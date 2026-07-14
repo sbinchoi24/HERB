@@ -375,6 +375,17 @@
   .p-btn:disabled{opacity:.4;cursor:not-allowed}
   .p-btn:disabled:hover{background:var(--anchor-bg)}
   .p-sub{font-size:12px;font-weight:700;color:var(--ink3);margin:18px 0 6px}
+  .p-history{display:flex;flex-wrap:wrap;gap:6px}
+  .p-history-item{
+    display:flex;align-items:center;gap:5px;
+    font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    border:1.5px solid var(--line);color:var(--ink2);background:#fff;
+    border-radius:10px;padding:6px 10px;transition:border-color .15s,background .15s,color .15s;
+  }
+  .p-history-item:hover{border-color:var(--green)}
+  .p-history-item .p-history-dow{color:var(--ink3);font-weight:600;font-size:11px}
+  .p-history-item.active{background:var(--green);border-color:var(--green);color:#fff}
+  .p-history-item.active .p-history-dow{color:rgba(255,255,255,.8)}
   .p-memo{
     width:100%;min-height:80px;resize:vertical;
     font-family:inherit;font-size:14px;color:var(--ink);
@@ -1256,8 +1267,23 @@ function renderPanel(){
         <span class="p-tag ${tag}">${tagLabel}</span>
       </div>
       <button class="p-x" onclick="closeCase()">×</button>
-    </div>
-    <div class="p-list">`;
+    </div>`;
+  if(c.type==='상비약'){
+    const group=cases.filter(x=>x.type==='상비약'&&x.name===c.name)
+      .slice().sort((a,b)=>diff(b.brew1,a.brew1));
+    if(group.length>1){
+      h+=`<div class="p-sub" style="margin-top:14px">등록 이력 · 최신순 (${group.length}건)</div>
+        <div class="p-history">`+group.map(g=>{
+          const active=g.id===c.id;
+          const dow='일월화수목금토'[parse(g.brew1).getDay()];
+          const [,mm,dd]=g.brew1.split('-');
+          return `<button class="p-history-item${active?' active':''}" onclick="openCase(${g.id})">
+            <span>${+mm}/${+dd}</span><span class="p-history-dow">${dow}</span>
+          </button>`;
+        }).join('')+`</div>`;
+    }
+  }
+  h+=`<div class="p-list">`;
   sch.order.forEach(role=>{
     const m=sch.meta[role];
     const info=chain[role];
