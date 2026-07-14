@@ -171,6 +171,10 @@
   .chip.moved{background:var(--red-bg)}
   .chip.moved .dot{background:var(--red)}
   .chip.moved .role,.chip.moved .day{color:var(--red)}
+  /* HS/IS(전화상담) 표시 — 블럭을 통으로 빨간색으로 채우고 우측 끝에 "전화상담" 표기 */
+  .chip.phone{background:var(--red)}
+  .chip.phone .who,.chip.phone .role{color:#fff}
+  .chip .phone-tag{margin-left:auto;color:#fff;font-weight:800;font-size:10px;white-space:nowrap}
   /* 이동 툴팁 */
   .chip[data-tip]:hover::after{
     content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 7px);
@@ -262,7 +266,7 @@
 
   /* 상세 패널 */
   .panel{
-    position:fixed;top:0;right:0;height:100vh;width:460px;max-width:92vw;
+    position:fixed;top:0;right:0;height:100vh;width:560px;max-width:92vw;
     background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.12);
     transform:translateX(105%);transition:transform .28s cubic-bezier(.4,0,.2,1);
     z-index:200;padding:24px 22px;overflow-y:auto;
@@ -313,6 +317,17 @@
     outline:none;transition:border-color .15s;
   }
   .p-memo:focus{border-color:var(--blue)}
+
+  /* 내원 ✕ (전화상담) 토글 버튼 — 상하좌우 패딩 동일 */
+  .phone-toggle{
+    display:inline-block;margin-top:8px;
+    font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;
+    border:1.5px solid var(--red);color:var(--red);background:#fff;
+    border-radius:8px;padding:6px 6px;line-height:1;
+    transition:background .15s,color .15s;
+  }
+  .phone-toggle.on{background:var(--red);color:#fff}
+  .phone-toggle:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -357,6 +372,7 @@
         <div class="seg">
           <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
           <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
+          <button data-f="consult" onclick="setFilter('consult')">상담만</button>
         </div>
         <div class="nav">
           <button onclick="move(-1)">‹</button>
@@ -495,6 +511,8 @@ function isBrewKind(kind){return kind==='brew';}
 function schemaBuild(c){
   return SCHEMA[c.type].build(c.처방,c.cycles||2);
 }
+// 전화상담(내원 X) 표시 여부 — HS(일반) / 픽업 IS·복용 IS(다이어트) 등 kind==='consult'인 날에만 사용
+function phoneOn(c,role){return !!(c.phone&&c.phone[role]);}
 const MAX=6;
 
 // 순번상 "바로 앞 일정 + 정석 간격"과 실제 날짜를 비교해 이동 여부 판단.
@@ -570,8 +588,12 @@ function formatDob(dob){
 }
 
 /* ---------- Supabase 연동 ----------
-   cases 테이블: id,type,name,dob,prescribed_date,cycles
+   cases 테이블: id,type,name,dob,prescribed_date,cycles,memo,phone_consult(jsonb, 신규)
    case_dates 테이블: case_id,role,date (환자별 각 일정 실제 날짜, 차수만큼 동적으로 쌓임)
+   ⚠ phone_consult 컬럼은 새로 추가된 필드예요. Supabase의 cases 테이블에
+      jsonb 타입의 phone_consult 컬럼이 없다면 저장이 실패하고(콘솔에만 로그),
+      화면에서는 그 세션 동안만 반영돼요. 컬럼을 추가해 주세요:
+      alter table cases add column phone_consult jsonb default '{}'::jsonb;
    ⚠ 이 파일은 정적 HTML이라 anon key가 소스에 그대로 노출됩니다.
       RLS를 전체 허용으로 열어뒀기 때문에, 이 키를 아는 사람은 누구나 환자 데이터에 접근할 수 있어요.
 */
@@ -598,7 +620,7 @@ try{
   console.error('Supabase 초기화 실패, 로컬 모드로 동작:',err);
   sb=makeStubClient();
 }
-const CORE_FIELDS=['id','type','name','dob','처방','cycles','memo'];
+const CORE_FIELDS=['id','type','name','dob','처방','cycles','memo','phone'];
 
 async function loadFromDB(){
   try{
@@ -608,7 +630,7 @@ async function loadFromDB(){
     ]);
     if(e1||e2)throw e1||e2;
     // 데이터가 하나도 없어도 임의로 예시 환자를 만들지 않고 빈 캘린더 그대로 둔다.
-    cases=caseRows.map(r=>({id:r.id,type:r.type,name:r.name,dob:r.dob,처방:r.prescribed_date,cycles:r.cycles,memo:r.memo||''}));
+    cases=caseRows.map(r=>({id:r.id,type:r.type,name:r.name,dob:r.dob,처방:r.prescribed_date,cycles:r.cycles,memo:r.memo||'',phone:r.phone_consult||{}}));
     uid=Math.max(0,...caseRows.map(r=>r.id))+1;
     dateRows.forEach(dr=>{
       const c=cases.find(x=>x.id===dr.case_id);
@@ -622,7 +644,7 @@ async function loadFromDB(){
 async function persistNewCase(c){
   try{
     const{data,error}=await sb.from('cases').insert({
-      type:c.type,name:c.name,dob:c.dob,prescribed_date:c.처방,cycles:c.cycles||2,memo:c.memo||''
+      type:c.type,name:c.name,dob:c.dob,prescribed_date:c.처방,cycles:c.cycles||2,memo:c.memo||'',phone_consult:{}
     }).select().single();
     if(error)throw error;
     c.id=data.id;
@@ -645,6 +667,10 @@ async function persistMemo(caseId,memo){
   try{const{error}=await sb.from('cases').update({memo}).eq('id',caseId);if(error)throw error;}
   catch(err){console.error('메모 저장 실패:',err);}
 }
+async function persistPhone(caseId,phone){
+  try{const{error}=await sb.from('cases').update({phone_consult:phone}).eq('id',caseId);if(error)throw error;}
+  catch(err){console.error('전화상담 표시 저장 실패:',err);}
+}
 async function persistDeleteCase(caseId){
   try{const{error}=await sb.from('cases').delete().eq('id',caseId);if(error)throw error;} // case_dates는 FK cascade로 같이 삭제됨
   catch(err){console.error('환자 삭제 실패:',err);}
@@ -656,7 +682,7 @@ function seed(){
   [['일반',addDays(base,2),'10234','850314'],
    ['다이어트',addDays(base,1),'20567','900722'],
   ].forEach(([t,d,n,dob])=>{
-    const c={id:uid++,type:t,name:n,dob,처방:d};
+    const c={id:uid++,type:t,name:n,dob,memo:'',phone:{},처방:d};
     Object.assign(c,schemaBuild(c).data);
     cases.push(c);
   });
@@ -727,7 +753,7 @@ function addCase(){
   const name=document.getElementById('f-name').value.trim()||(isStock?'상비약':'미지정');
   const dob=isStock?'':document.getElementById('f-dob').value.replace(/\D/g,'').slice(0,6);
   if(!d){alert(isStock?'탕전일을 선택해 주세요':'처방일을 선택해 주세요');return;}
-  const c={id:uid++,type,name,dob,memo:'',처방:d};
+  const c={id:uid++,type,name,dob,memo:'',phone:{},처방:d};
   Object.assign(c,schemaBuild(c).data);
   cases.push(c);
   document.getElementById('f-name').value='';
@@ -801,6 +827,16 @@ function cancelMove(){
   render(); // 패널 날짜칸이 임시로 바뀐 값을 보여주고 있었다면 원래 값으로 되돌림
 }
 
+/* ---------- 전화상담(내원 X) 토글 ---------- */
+function togglePhone(cid,role){
+  if(!requireEdit())return;
+  const c=cases.find(x=>x.id===cid);if(!c)return;
+  c.phone=c.phone||{};
+  c.phone[role]=!c.phone[role];
+  render();
+  persistPhone(c.id,c.phone);
+}
+
 /* ---------- 렌더 ---------- */
 function render(){
   document.getElementById('addForm').style.display=editUnlocked?'flex':'none';
@@ -818,14 +854,17 @@ function render(){
   const schMap={};
   cases.forEach(c=>schMap[c.id]=schemaBuild(c));
 
-  const byDay={};
+  const byDay={};     // 화면에 표시할 칩(현재 필터 적용됨)
+  const byDayAll={};  // 탕전 정원 초과 알림 계산용 — 현재 필터와 무관하게 항상 탕전 전체 집계
   cases.forEach(c=>{
     if(isolate&&c.id!==isolate)return; // isolate 중엔 그 사람만 표시
     schMap[c.id].order.forEach(role=>{
       const m=schMap[c.id].meta[role];
       // isolate 중인 사람은 평소 캘린더에 숨겨지는 픽업·복용시작 등도 전부 노출
       if(m.calHidden && c.id!==isolate)return;
+      if(m.kind==='brew')(byDayAll[c[role]] ||= []).push({c,role});
       if(filter==='brew'&&m.kind!=='brew')return;
+      if(filter==='consult'&&m.kind!=='consult')return;
       (byDay[c[role]] ||= []).push({c,role});
     });
   });
@@ -843,7 +882,7 @@ function render(){
     const d=new Date(start);d.setDate(start.getDate()+i);
     const ds=ymd(d),inM=d.getMonth()===vm;
     const items=byDay[ds]||[];
-    const brew=items.filter(x=>schMap[x.c.id].meta[x.role].kind==='brew').length;
+    const brew=(byDayAll[ds]||[]).length;
     if(brew>MAX&&inM)over.push({date:ds,cnt:brew});
 
     const cell=document.createElement('div');
@@ -858,13 +897,15 @@ function render(){
       const m=schMap[c.id].meta[role];
       const fam=famOf(c.type);
       const info=chainMap[c.id][role];
-      const moved=info.moved;
+      const isPhone=m.kind==='consult'&&phoneOn(c,role);
+      const moved=info.moved&&!isPhone;
       let tip='';
       if(moved){const[,mm,dd]=info.expected.split('-');tip=` data-tip="정상 간격상 ${+mm}/${+dd} · ${info.delta>0?'+':''}${info.delta}일 이동"`;}
       const isBrew=isBrewKind(m.kind);
-      const dot=`<span class="dot${isBrew?' dot-hidden':' dot-'+fam}"></span>`;
-      h+=`<div class="chip${isBrew?' fill-'+fam:''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
-        ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span></div>`;
+      const dot=`<span class="dot${(isBrew||isPhone)?' dot-hidden':' dot-'+fam}"></span>`;
+      const phoneTag=isPhone?`<span class="phone-tag">전화상담</span>`:'';
+      h+=`<div class="chip${isBrew?' fill-'+fam:''}${isPhone?' phone':''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
+        ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span>${phoneTag}</div>`;
     });
     h+='</div>';
     cell.innerHTML=h;grid.appendChild(cell);
@@ -1036,20 +1077,25 @@ function renderPanel(){
   sch.order.forEach(role=>{
     const m=sch.meta[role];
     const info=chain[role];
+    const isConsultRole=m.kind==='consult';
+    const phoneActive=isConsultRole&&phoneOn(c,role);
     const cur=info.actual;
     const dow='일월화수목금토'[parse(cur).getDay()];
     const ds=dose[role];
     const day=ds?`<span class="p-day">${ds.no}차 복용 ${ds.day}일차</span>`:'';
     let mv='';
-    if(info.moved){
+    if(info.moved&&!phoneActive){
       // 픽업은 "일정이 밀렸다"보다 "따로 수정됐다"는 뉘앙스라 문구를 다르게 표시
       mv = role.startsWith('pickup')
         ? `<div class="p-move">변경됨</div>`
         : `<div class="p-move">정상 간격보다 ${info.delta>0?'+':''}${info.delta}일 밀림</div>`;
     }
+    const phoneBtn=isConsultRole
+      ?`<button class="phone-toggle${phoneActive?' on':''}" onclick="togglePhone(${c.id},'${role}')"${editUnlocked?'':' disabled'}>내원 ✕</button>`
+      :'';
     h+=`<div class="p-row">
       <span class="p-dot dot-${famOf(c.type)}"></span>
-      <div class="p-main"><div class="p-label">${m.label}</div>${mv}</div>
+      <div class="p-main"><div class="p-label">${m.label}</div>${mv}${phoneBtn}</div>
       <div class="p-dosecol">${day}</div>
       <div class="p-date">
         <input type="date" class="p-date-input" value="${cur}" onchange="moveChip(${c.id},'${role}',this.value)"${editUnlocked?'':' disabled'}>
