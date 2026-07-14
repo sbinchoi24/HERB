@@ -378,17 +378,19 @@
 
   <div class="cal">
     <div class="cal-head">
-      <div class="cal-title" id="calTitle"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="cal-title" id="calTitle"></div>
+        <div class="nav">
+          <button onclick="move(-1)">‹</button>
+          <button onclick="move(1)">›</button>
+        </div>
+      </div>
       <div class="head-right">
         <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
         <div class="seg">
           <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
           <button data-f="brew" onclick="setFilter('brew')">탕전만</button>
           <button data-f="consult" onclick="setFilter('consult')">상담만</button>
-        </div>
-        <div class="nav">
-          <button onclick="move(-1)">‹</button>
-          <button onclick="move(1)">›</button>
         </div>
       </div>
     </div>
@@ -589,12 +591,27 @@ function computeDoseDays(c,sch){
 }
 
 /* ---------- 같은 날 여러 칩의 표시 순서(수동 정렬) ----------
-   날짜별로 사용자가 드래그로 바꾼 순서를 기억한다. 클리닉 공용 데이터는 아니고
-   이 브라우저에만 저장되는 표시상의 편의 기능(localStorage)이다. */
+   날짜별로 사용자가 드래그로 바꾼 순서를 Supabase의 day_chip_order 테이블에 저장해서
+   다른 기기·다른 브라우저에서도 같은 순서로 보이게 한다. */
 let chipOrder = {};
-try{ chipOrder = JSON.parse(localStorage.getItem('herb_chip_order')||'{}'); }catch(e){ chipOrder = {}; }
-function saveChipOrder(){
-  try{ localStorage.setItem('herb_chip_order', JSON.stringify(chipOrder)); }catch(e){}
+async function loadChipOrder(){
+  try{
+    const {data,error} = await sb.from('day_chip_order').select('*');
+    if(error) throw error;
+    const map = {};
+    (data||[]).forEach(row=>{ map[row.date] = row.order_keys || []; });
+    chipOrder = map;
+  }catch(err){
+    console.error('칩 순서 불러오기 실패:',err);
+  }
+}
+async function persistChipOrder(date, orderKeys){
+  try{
+    const {error} = await sb.from('day_chip_order').upsert({date, order_keys: orderKeys}, {onConflict:'date'});
+    if(error) throw error;
+  }catch(err){
+    console.error('칩 순서 저장 실패:',err);
+  }
 }
 function reorderWithinDay(date, dragKey, targetKey, clientY, targetEl){
   const cellChips = Array.from(document.querySelectorAll(`.cell[data-date="${date}"] .chip`))
@@ -608,8 +625,8 @@ function reorderWithinDay(date, dragKey, targetKey, clientY, targetEl){
   const insertAt = targetIdx<0 ? order.length : (insertBefore ? targetIdx : targetIdx+1);
   order.splice(insertAt, 0, dragKey);
   chipOrder[date] = order;
-  saveChipOrder();
   render();
+  persistChipOrder(date, order);
 }
 
 /* ---------- 상태 ---------- */
@@ -1220,7 +1237,7 @@ document.addEventListener('click',e=>{
 
 /* ---------- 초기화 ---------- */
 document.getElementById('f-date').value=ymd(now);
-loadFromDB().then(render);
+Promise.all([loadFromDB(), loadChipOrder()]).then(render);
 </script>
 </body>
 </html>
