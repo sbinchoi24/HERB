@@ -178,10 +178,11 @@
   .chip.moved{background:var(--red-bg)}
   .chip.moved .dot{background:var(--red)}
   .chip.moved .role,.chip.moved .day{color:var(--red)}
-  /* HS/IS(전화상담) 표시 — 블럭을 통으로 빨간색으로 채우고 우측 끝에 "전화상담" 표기 */
-  .chip.phone{background:var(--red)}
-  .chip.phone .who,.chip.phone .role{color:#fff}
-  .chip .phone-tag{margin-left:auto;color:#fff;font-weight:800;font-size:10px;white-space:nowrap}
+  /* HS/IS(전화상담) 표시 — 옅은 빨간 배경 + 진한 빨간 글자로, 우측 끝에 "전화상담" 표기 */
+  .chip.phone{background:#F7B4BA}
+  .chip.phone .who{color:#8C121C}
+  .chip.phone .role{color:#B3202C}
+  .chip .phone-tag{margin-left:auto;color:#8C121C;font-weight:800;font-size:10px;white-space:nowrap}
   /* 이동 툴팁 */
   .chip[data-tip]:hover::after{
     content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 7px);
@@ -587,6 +588,30 @@ function computeDoseDays(c,sch){
   return info;
 }
 
+/* ---------- 같은 날 여러 칩의 표시 순서(수동 정렬) ----------
+   날짜별로 사용자가 드래그로 바꾼 순서를 기억한다. 클리닉 공용 데이터는 아니고
+   이 브라우저에만 저장되는 표시상의 편의 기능(localStorage)이다. */
+let chipOrder = {};
+try{ chipOrder = JSON.parse(localStorage.getItem('herb_chip_order')||'{}'); }catch(e){ chipOrder = {}; }
+function saveChipOrder(){
+  try{ localStorage.setItem('herb_chip_order', JSON.stringify(chipOrder)); }catch(e){}
+}
+function reorderWithinDay(date, dragKey, targetKey, clientY, targetEl){
+  const cellChips = Array.from(document.querySelectorAll(`.cell[data-date="${date}"] .chip`))
+    .map(el=>el.dataset.cid+':'+el.dataset.role);
+  let order = chipOrder[date] ? chipOrder[date].slice() : cellChips.slice();
+  cellChips.forEach(k=>{ if(!order.includes(k)) order.push(k); });
+  order = order.filter(k=>k!==dragKey);
+  const targetIdx = order.indexOf(targetKey);
+  const rect = targetEl.getBoundingClientRect();
+  const insertBefore = (clientY - rect.top) < rect.height/2;
+  const insertAt = targetIdx<0 ? order.length : (insertBefore ? targetIdx : targetIdx+1);
+  order.splice(insertAt, 0, dragKey);
+  chipOrder[date] = order;
+  saveChipOrder();
+  render();
+}
+
 /* ---------- 상태 ---------- */
 let cases=[], uid=1, selected=null, filter='all', isolate=null;
 const now=new Date();
@@ -903,7 +928,17 @@ function render(){
     let h=`<span class="num">${d.getDate()}</span>`;
     if(brew>0){const cl=brew>MAX?'bad':(brew===MAX?'warn':'');h+=`<span class="cnt ${cl}">탕전 ${brew}</span>`;}
     h+='<div class="chips">';
-    items.sort((a,b)=>schMap[a.c.id].order.indexOf(a.role)-schMap[b.c.id].order.indexOf(b.role));
+    items.sort((a,b)=>{
+      const order = chipOrder[ds];
+      if(order){
+        const ka = a.c.id+':'+a.role, kb = b.c.id+':'+b.role;
+        const ia = order.indexOf(ka), ib = order.indexOf(kb);
+        if(ia!==-1 && ib!==-1) return ia-ib;
+        if(ia!==-1) return -1;
+        if(ib!==-1) return 1;
+      }
+      return schMap[a.c.id].order.indexOf(a.role)-schMap[b.c.id].order.indexOf(b.role);
+    });
     items.forEach(({c,role})=>{
       const m=schMap[c.id].meta[role];
       const fam=famOf(c.type);
@@ -915,7 +950,7 @@ function render(){
       const isBrew=isBrewKind(m.kind);
       const dot=`<span class="dot${(isBrew||isPhone)?' dot-hidden':' dot-'+fam}"></span>`;
       const phoneTag=isPhone?`<span class="phone-tag">전화상담</span>`:'';
-      h+=`<div class="chip fam-${fam}${isBrew?' fill-'+fam:''}${isPhone?' phone':''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
+      h+=`<div class="chip fam-${fam}${isBrew?' fill-'+fam:''}${isPhone?' phone':''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}" data-date="${ds}"${tip}>
         ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span>${phoneTag}</div>`;
     });
     h+='</div>';
@@ -939,7 +974,7 @@ function bindDrag(){
   document.querySelectorAll('.chip').forEach(ch=>{
     ch.addEventListener('dragstart',e=>{
       if(!editUnlocked){e.preventDefault();return;}
-      drag={cid:+ch.dataset.cid,role:ch.dataset.role};
+      drag={cid:+ch.dataset.cid,role:ch.dataset.role,date:ch.dataset.date};
       ch.classList.add('dragging');
       e.dataTransfer.effectAllowed='move';
     });
@@ -949,6 +984,21 @@ function bindDrag(){
     ch.addEventListener('contextmenu',e=>{
       e.preventDefault();e.stopPropagation();
       showCtxMenu(e.clientX,e.clientY,+ch.dataset.cid);
+    });
+    // 칩 위로 드래그해서 놓으면: 같은 날짜면 순서 변경, 다른 날짜면 기존처럼 날짜 이동
+    ch.addEventListener('dragover',e=>{ e.preventDefault(); e.stopPropagation(); });
+    ch.addEventListener('drop',e=>{
+      e.preventDefault(); e.stopPropagation();
+      if(!drag) return;
+      const targetDate = ch.dataset.date;
+      const targetKey = ch.dataset.cid+':'+ch.dataset.role;
+      const dragKey = drag.cid+':'+drag.role;
+      if(dragKey===targetKey) return;
+      if(drag.date===targetDate){
+        reorderWithinDay(targetDate, dragKey, targetKey, e.clientY, ch);
+      } else {
+        moveChip(drag.cid, drag.role, targetDate);
+      }
     });
   });
   document.querySelectorAll('.cell').forEach(cell=>{
