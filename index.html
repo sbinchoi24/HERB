@@ -48,8 +48,33 @@
   }
   .wrap{max-width:1560px;margin:0 auto}
 
-  /* header */
-  .top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:14px}
+  /* 사이트 최상단: 병원명 + 관리자 메뉴 */
+  .site-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .site-name{font-size:14.5px;font-weight:800;color:var(--ink2);letter-spacing:-.2px}
+  .site-admin{display:flex;gap:8px}
+
+  /* 페이지 헤더: 큰 제목 + 오늘 날짜 / 우측 액션 버튼 */
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .page-head-date{color:var(--ink3);font-size:13px;font-weight:600;margin-top:2px}
+  .page-head-actions{display:flex;gap:8px}
+
+  /* 캘린더(좌) + 등록 카드(우) 2단 레이아웃 */
+  .main-grid{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+  @media (max-width:980px){.main-grid{grid-template-columns:1fr}}
+  .side-panel{position:sticky;top:16px}
+  .add-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:20px}
+  .add-card-title{font-size:16px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px}
+
+  /* 캘린더 상단: 필터 줄 + 가운데 정렬된 '‹ 2026년 7월 ›' 줄 */
+  .cal-head-top{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:16px 22px 0}
+  .cal-title-row{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 0 16px}
+  .nav-arrow{
+    width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--bg);color:var(--ink2);font-size:20px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;transition:background .15s;
+  }
+  .nav-arrow:hover{background:#E5E8EB}
+
   h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
   .sub{color:var(--ink3);font-size:14px;margin-top:4px;font-weight:500}
 
@@ -362,48 +387,31 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <div>
-      <h1>탕전 일정</h1>
-    </div>
-    <div style="display:flex;gap:8px">
+  <div class="site-top">
+    <div class="site-name">경희라피엘한의원</div>
+    <div class="site-admin">
       <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
+    </div>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 style="margin:4px 0 0;text-align:left">탕전 일정</h1>
+      <div class="page-head-date" id="todayLine"></div>
+    </div>
+    <div class="page-head-actions">
       <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
       <button class="btn ghost" onclick="jumpToday()">오늘로</button>
     </div>
   </div>
 
-  <div class="add" id="addForm">
-    <label id="dateLabel">처방일</label>
-    <input type="date" id="f-date">
-    <label style="margin-left:14px">종류</label>
-    <div class="seg" id="typeToggle">
-      <button type="button" class="on" data-type="일반" onclick="setAddType('일반')">일반</button>
-      <button type="button" data-type="다이어트" onclick="setAddType('다이어트')">다이어트</button>
-      <button type="button" data-type="상비약" onclick="setAddType('상비약')">상비</button>
-    </div>
-    <label id="nameLabel" style="margin-left:14px">차트 번호</label>
-    <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off">
-    <span id="dobWrap" style="display:flex;gap:10px;align-items:center;margin-left:14px">
-      <label>생년월일</label>
-      <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px" autocomplete="off">
-    </span>
-    <button class="btn" onclick="addCase()">추가</button>
-  </div>
-  <div id="lockNotice" class="sub" style="display:none;margin:-6px 0 16px 2px">🔒 보기 전용 모드예요. 편집하려면 위의 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</div>
+  <div id="lockNotice" class="sub" style="display:none;margin:-10px 0 16px 2px">🔒 보기 전용 모드예요. 편집하려면 위의 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</div>
 
   <div id="alerts"></div>
 
-  <div class="cal">
-    <div class="cal-head">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="nav">
-          <button onclick="move(-1)">‹</button>
-          <button onclick="move(1)">›</button>
-        </div>
-        <div class="cal-title" id="calTitle"></div>
-      </div>
-      <div class="head-right">
+  <div class="main-grid">
+    <div class="cal">
+      <div class="cal-head-top">
         <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
         <div class="seg">
           <button class="on" data-f="all" onclick="setFilter('all')">전체</button>
@@ -411,9 +419,37 @@
           <button data-f="consult" onclick="setFilter('consult')">상담만</button>
         </div>
       </div>
+      <div class="cal-title-row">
+        <button class="nav-arrow" onclick="move(-1)">‹</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="nav-arrow" onclick="move(1)">›</button>
+      </div>
+      <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+      <div class="grid" id="grid"></div>
     </div>
-    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
-    <div class="grid" id="grid"></div>
+
+    <div class="side-panel">
+      <div class="add-card">
+        <div class="add-card-title">탕전 일정 등록</div>
+        <div class="add" id="addForm">
+          <label id="dateLabel">처방일</label>
+          <input type="date" id="f-date">
+          <label style="margin-left:14px">종류</label>
+          <div class="seg" id="typeToggle">
+            <button type="button" class="on" data-type="일반" onclick="setAddType('일반')">일반</button>
+            <button type="button" data-type="다이어트" onclick="setAddType('다이어트')">다이어트</button>
+            <button type="button" data-type="상비약" onclick="setAddType('상비약')">상비</button>
+          </div>
+          <label id="nameLabel" style="margin-left:14px">차트 번호</label>
+          <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off">
+          <span id="dobWrap" style="display:flex;gap:10px;align-items:center;margin-left:14px">
+            <label>생년월일</label>
+            <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px" autocomplete="off">
+          </span>
+          <button class="btn" onclick="addCase()" style="width:100%;margin-top:4px">추가</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1294,6 +1330,11 @@ document.addEventListener('click',e=>{
 
 /* ---------- 초기화 ---------- */
 document.getElementById('f-date').value=ymd(now);
+(function(){
+  const days=['일','월','화','수','목','금','토'];
+  const el=document.getElementById('todayLine');
+  if(el) el.textContent=`${now.getMonth()+1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
+})();
 Promise.all([loadFromDB(), loadChipOrder()]).then(render);
 </script>
 </body>
