@@ -376,15 +376,15 @@
   <div class="add" id="addForm">
     <label id="dateLabel">처방일</label>
     <input type="date" id="f-date">
-    <label>종류</label>
+    <label style="margin-left:14px">종류</label>
     <div class="seg" id="typeToggle">
       <button type="button" class="on" data-type="일반" onclick="setAddType('일반')">일반</button>
       <button type="button" data-type="다이어트" onclick="setAddType('다이어트')">다이어트</button>
       <button type="button" data-type="상비약" onclick="setAddType('상비약')">상비</button>
     </div>
-    <label id="nameLabel">차트 번호</label>
+    <label id="nameLabel" style="margin-left:14px">차트 번호</label>
     <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off">
-    <span id="dobWrap" style="display:flex;gap:10px;align-items:center">
+    <span id="dobWrap" style="display:flex;gap:10px;align-items:center;margin-left:14px">
       <label>생년월일</label>
       <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:120px" autocomplete="off">
     </span>
