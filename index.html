@@ -325,6 +325,24 @@
     outline:none;transition:border-color .15s;
   }
   .p-memo:focus{border-color:var(--blue)}
+  .p-memo-save-row{display:flex;justify-content:flex-end;margin-top:8px}
+  .p-memo-save{
+    font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    border:none;border-radius:10px;padding:8px 16px;
+    background:var(--blue);color:#fff;transition:background .15s;
+  }
+  .p-memo-save:hover{background:var(--blue-d)}
+  .p-memo-save.saved{background:var(--green)}
+  .p-memo-save:disabled{opacity:.4;cursor:not-allowed}
+
+  /* 저장 등 알림용 토스트 */
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;font-size:13px;font-weight:700;
+    padding:12px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);
+    z-index:500;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* 미내원(전화상담) 토글 — 기본: 빨간 테두리만, 선택: 빨간 배경으로 채움 */
   .phone-toggle{
@@ -379,11 +397,11 @@
   <div class="cal">
     <div class="cal-head">
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="cal-title" id="calTitle"></div>
         <div class="nav">
           <button onclick="move(-1)">‹</button>
           <button onclick="move(1)">›</button>
         </div>
+        <div class="cal-title" id="calTitle"></div>
       </div>
       <div class="head-right">
         <button class="btn-back" id="isolateBtn" style="display:none" onclick="clearIsolate()">돌아가기</button>
@@ -1023,7 +1041,22 @@ function bindDrag(){
     cell.addEventListener('dragleave',()=>cell.classList.remove('dragover'));
     cell.addEventListener('drop',e=>{
       e.preventDefault();cell.classList.remove('dragover');
-      if(drag)moveChip(drag.cid,drag.role,cell.dataset.date);
+      if(!drag) return;
+      if(drag.date===cell.dataset.date){
+        // 같은 날짜 안에서 칩과 칩 사이 빈 틈에 놓아도 가장 가까운 칩 기준으로 순서를 바꾼다
+        const chips = Array.from(cell.querySelectorAll('.chip'));
+        if(!chips.length) return;
+        let target = chips[chips.length-1];
+        for(const el of chips){
+          const r = el.getBoundingClientRect();
+          if(e.clientY < r.top + r.height/2){ target = el; break; }
+        }
+        const targetKey = target.dataset.cid+':'+target.dataset.role;
+        const dragKey = drag.cid+':'+drag.role;
+        if(dragKey!==targetKey) reorderWithinDay(cell.dataset.date, dragKey, targetKey, e.clientY, target);
+        return;
+      }
+      moveChip(drag.cid,drag.role,cell.dataset.date);
     });
   });
 }
@@ -1197,7 +1230,10 @@ function renderPanel(){
     </div>`;
   }
   h+=`<div class="p-sub">메모</div>
-    <textarea class="p-memo" placeholder="메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)"${editUnlocked?'':' disabled'}>${c.memo||''}</textarea>`;
+    <textarea id="p-memo-input" class="p-memo" placeholder="메모를 남겨보세요" onchange="saveMemo(${c.id},this.value)"${editUnlocked?'':' disabled'}>${c.memo||''}</textarea>
+    <div class="p-memo-save-row">
+      <button class="p-memo-save" onclick="saveMemoBtn(${c.id},this)"${editUnlocked?'':' disabled'}>저장</button>
+    </div>`;
   p.innerHTML=h;p.className='panel open';
 }
 function saveMemo(id,memo){
@@ -1205,6 +1241,27 @@ function saveMemo(id,memo){
   const c=cases.find(x=>x.id===id);if(!c)return;
   c.memo=memo;
   persistMemo(id,memo);
+}
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toast';
+    t.className='toast';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function saveMemoBtn(id,btn){
+  if(!requireEdit())return;
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  const ta=document.getElementById('p-memo-input');
+  if(ta) c.memo=ta.value;
+  persistMemo(id,c.memo);
+  showToast('저장되었습니다');
 }
 function addCycle(id){
   if(!requireEdit())return;
