@@ -46,17 +46,19 @@
     padding:0 20px 80px;
     line-height:1.4;
   }
-  .wrap{width:100%;margin:0 auto}
+  .wrap{width:min(1540px, calc(100% - 44px));margin:0 auto}
 
   /* 사이트 최상단: 흰 배경 바 + 병원명 + 관리자 메뉴 (참고 사이트의 .top 과 동일한 톤) */
   .site-top-bar{
-    margin:0 -20px 28px;padding:0 20px;height:72px;
+    margin:0 -20px 28px;height:72px;
     background:#fff;border-bottom:1px solid var(--line);
-    display:flex;align-items:center;
   }
+  .site-top-inner{width:min(1540px, calc(100% - 44px));margin:0 auto;height:100%;display:flex;align-items:center}
   .site-top{display:flex;align-items:center;justify-content:space-between;width:100%}
   .site-name{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.2px}
-  .site-admin{display:flex;gap:8px}
+  .site-admin{display:flex;align-items:center;gap:10px}
+  .lock-hint{display:none;align-items:center;font-size:12.5px;color:var(--ink3);font-weight:600;white-space:nowrap}
+  .today-badge{background:#F2F7FF;color:#286AB9;border-radius:13px;padding:11px 16px;font-weight:800;font-size:14px;white-space:nowrap}
 
   /* 페이지 헤더: 큰 제목 + 오늘 날짜 / 우측 액션 버튼 */
   .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -71,11 +73,11 @@
   .add-card-title{font-size:16px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px}
 
   /* 캘린더 상단: 필터 줄 + 가운데 정렬된 '‹ 2026년 7월 ›' 줄 */
-  .cal-head-top{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:16px 22px 0}
-  .cal-title-row{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 0 16px}
+  .cal-head-top{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:14px 22px 0}
+  .cal-title-row{display:flex;align-items:center;justify-content:center;gap:28px;height:66px;border-bottom:1px solid var(--line)}
   .nav-arrow{
-    width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
-    background:var(--bg);color:var(--ink2);font-size:20px;font-weight:700;
+    width:40px;height:40px;border-radius:13px;border:none;cursor:pointer;
+    background:#F2F4F6;color:var(--ink2);font-size:25px;font-weight:700;
     display:flex;align-items:center;justify-content:center;transition:background .15s;
   }
   .nav-arrow:hover{background:#E5E8EB}
@@ -135,6 +137,10 @@
   .seg button{border:none;background:none;padding:7px 15px;border-radius:8px;
     font-family:inherit;font-size:13px;font-weight:700;color:var(--ink3);cursor:pointer;transition:all .15s}
   .seg button.on{background:var(--ink);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  /* 등록 폼의 '종류' 토글만 종류별 테마색으로 선택 표시 */
+  #typeToggle button.on[data-type="일반"]{background:var(--blue);color:#fff}
+  #typeToggle button.on[data-type="다이어트"]{background:var(--orange);color:#fff}
+  #typeToggle button.on[data-type="상비약"]{background:var(--green);color:#fff}
   .nav button{
     width:36px;height:36px;border-radius:10px;border:none;cursor:pointer;
     background:var(--bg);color:var(--ink2);font-size:18px;font-weight:700;
@@ -142,7 +148,7 @@
   }
   .nav button:hover{background:#E5E8EB}
 
-  .dow{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line)}
+  .dow{display:grid;grid-template-columns:repeat(7,1fr)}
   .dow div{text-align:center;padding:10px 0;font-size:12px;font-weight:700;color:var(--ink3)}
   .dow div:first-child{color:#E5535F}
 
@@ -392,26 +398,22 @@
 </head>
 <body>
 <div class="site-top-bar">
-  <div class="site-top">
-    <div class="site-name">경희라피엘한의원</div>
-    <div class="site-admin">
-      <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
+  <div class="site-top-inner">
+    <div class="site-top">
+      <div class="site-name">경희라피엘한의원</div>
+      <div class="site-admin">
+        <span id="lockNotice" class="lock-hint">🔒 보기 전용 모드예요. 편집하려면 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</span>
+        <button class="btn ghost" id="editBtn" onclick="toggleEdit()">🔒 편집 권한</button>
+        <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
+        <div class="today-badge" id="todayLine"></div>
+      </div>
     </div>
   </div>
 </div>
 <div class="wrap">
   <div class="page-head">
-    <div>
-      <h1 style="margin:4px 0 0;text-align:left">탕전 일정</h1>
-      <div class="page-head-date" id="todayLine"></div>
-    </div>
-    <div class="page-head-actions">
-      <button class="btn ghost" onclick="showRefModal()">기준일 안내</button>
-      <button class="btn ghost" onclick="jumpToday()">오늘로</button>
-    </div>
+    <h1 style="margin:4px 0 0;text-align:left">탕전 일정</h1>
   </div>
-
-  <div id="lockNotice" class="sub" style="display:none;margin:-10px 0 16px 2px">🔒 보기 전용 모드예요. 편집하려면 위의 '편집 권한' 버튼을 눌러 비밀번호를 입력하세요.</div>
 
   <div id="alerts"></div>
 
@@ -452,11 +454,11 @@
           </div>
           <div>
             <label id="nameLabel" style="display:block;margin-bottom:6px">차트 번호</label>
-            <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off" style="width:100%">
+            <input type="text" id="f-name" placeholder="차트 번호" autocomplete="off" style="width:100%;font-weight:400">
           </div>
           <div id="dobWrap">
             <label style="display:block;margin-bottom:6px">생년월일</label>
-            <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:100%" autocomplete="off">
+            <input type="text" id="f-dob" placeholder="YYMMDD" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" style="width:100%;font-weight:400" autocomplete="off">
           </div>
           <button class="btn" onclick="addCase()" style="width:100%">추가</button>
         </div>
@@ -959,7 +961,7 @@ function togglePhone(cid,role){
 /* ---------- 렌더 ---------- */
 function render(){
   document.getElementById('addForm').style.display=editUnlocked?'flex':'none';
-  document.getElementById('lockNotice').style.display=editUnlocked?'none':'block';
+  document.getElementById('lockNotice').style.display=editUnlocked?'none':'flex';
   document.getElementById('editBtn').textContent=editUnlocked?'🔓 편집 중 (잠그기)':'🔒 편집 권한';
   const isoCase=isolate?cases.find(c=>c.id===isolate):null;
   if(!isoCase)isolate=null; // 대상이 사라졌으면 isolate 해제
