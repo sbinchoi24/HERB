@@ -337,12 +337,12 @@
 
   /* 저장 등 알림용 토스트 */
   .toast{
-    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);
+    position:fixed;bottom:28px;right:28px;transform:translateY(10px);
     background:var(--ink);color:#fff;font-size:13px;font-weight:700;
     padding:12px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);
     z-index:500;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
   }
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.show{opacity:1;transform:translateY(0)}
 
   /* 미내원(전화상담) 토글 — 기본: 빨간 테두리만, 선택: 빨간 배경으로 채움 */
   .phone-toggle{
