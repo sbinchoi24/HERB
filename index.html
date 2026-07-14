@@ -514,8 +514,8 @@
 <div class="modal-overlay" id="pwModal" onclick="cancelPw()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-title">편집 권한 비밀번호를 입력하세요</div>
-    <input type="text" id="pwInput" name="herb-edit-code" placeholder="비밀번호" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore
-      style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none;-webkit-text-security:disc;text-security:disc"
+    <input type="password" id="pwInput" name="herb-edit-code" placeholder="비밀번호" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore
+      style="width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;outline:none"
       onkeydown="if(event.key==='Enter')submitPw()">
     <div id="pwError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:-4px 0 10px 2px">비밀번호가 올바르지 않아요</div>
     <button class="modal-btn primary" onclick="submitPw()">확인</button>
