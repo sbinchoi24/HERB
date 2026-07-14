@@ -156,13 +156,13 @@
   .chip .dot{width:7px;height:7px;border-radius:50%;flex:none}
   .chip .who{color:var(--ink);font-weight:800;white-space:nowrap}
   .chip .role{color:var(--ink2);font-weight:600;white-space:nowrap}
-  /* 흰 배경(비-탕전) 칩은 글자색도 종류별 테마색으로 */
-  .chip.fam-gen .who{color:var(--blue-d)}
-  .chip.fam-gen .role{color:var(--blue)}
-  .chip.fam-diet .who{color:var(--orange-d)}
-  .chip.fam-diet .role{color:var(--orange)}
-  .chip.fam-stock .who{color:var(--green-d)}
-  .chip.fam-stock .role{color:var(--green)}
+  /* 흰 배경(비-탕전) 칩은 글자색도 종류별 테마색으로 (진하게) */
+  .chip.fam-gen .who{color:#0B4DBF}
+  .chip.fam-gen .role{color:#1B64DA}
+  .chip.fam-diet .who{color:#9A5116}
+  .chip.fam-diet .role{color:#B85C1F}
+  .chip.fam-stock .who{color:#14562E}
+  .chip.fam-stock .role{color:#1F7A45}
   .chip .day{margin-left:auto;color:var(--blue);font-weight:800;font-size:10px}
 
   /* 점 색: 한약=파랑, 다이어트=주황 (처방·HS·IS 등 탕전이 아닌 모든 칩) */
@@ -325,20 +325,20 @@
   }
   .p-memo:focus{border-color:var(--blue)}
 
-  /* 미내원(전화상담) 토글 — 동그란 점 인디케이터가 있는 pill 버튼 */
+  /* 미내원(전화상담) 토글 — 기본: 빨간 테두리만, 선택: 빨간 배경으로 채움 */
   .phone-toggle{
-    display:inline-flex;align-items:center;gap:6px;margin-top:9px;
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
     font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
-    border:1.5px solid var(--line);color:var(--ink3);background:#fff;
+    border:1.5px solid var(--red);color:var(--red);background:#fff;
     border-radius:20px;padding:6px 12px;line-height:1;
     transition:border-color .15s,color .15s,background .15s;
   }
-  .phone-toggle:hover:not(:disabled){border-color:var(--red);color:var(--red)}
-  .phone-toggle .ptg-dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);flex:none;transition:background .15s}
-  .phone-toggle.on{border-color:var(--red);background:var(--red);color:#fff}
+  .phone-toggle:hover:not(:disabled){background:var(--red-bg)}
+  .phone-toggle .ptg-dot{width:7px;height:7px;border-radius:50%;background:var(--red);flex:none;transition:background .15s}
+  .phone-toggle.on{background:var(--red);color:#fff}
   .phone-toggle.on .ptg-dot{background:#fff}
   .phone-toggle:disabled{opacity:.4;cursor:not-allowed}
-  .phone-toggle:disabled:hover{border-color:var(--line);color:var(--ink3)}
+  .phone-toggle:disabled:hover{background:#fff}
 </style>
 </head>
 <body>
@@ -1107,9 +1107,11 @@ function renderPanel(){
     h+=`<div class="p-row">
       <span class="p-dot dot-${famOf(c.type)}"></span>
       <div class="p-main">
-        <div class="p-label">${m.label}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="p-label">${m.label}</div>
+          ${phoneBtn}
+        </div>
         ${mv}
-        ${phoneBtn}
       </div>
       <div class="p-dosecol">${day}</div>
       <div class="p-date">
