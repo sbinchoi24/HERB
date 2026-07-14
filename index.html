@@ -118,7 +118,7 @@
 
   .grid{display:grid;grid-template-columns:repeat(7,1fr)}
   .cell{
-    min-height:128px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    min-height:150px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
     padding:8px 8px 10px;position:relative;transition:background .12s;
   }
   .cell:nth-child(7n){border-right:none}
@@ -142,11 +142,11 @@
   .cnt.bad{background:var(--red);color:#fff;box-shadow:0 0 0 3px rgba(240,68,82,.15)}
 
   /* chips — 탕전만 블럭 전체를 색으로 채우고, 나머지는 흰 배경 + 점 하나로 종류(한약=파랑/다이어트=주황) 표시 */
-  .chips{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+  .chips{display:flex;flex-direction:column;gap:7px;margin-top:3px}
   .chip{
     display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;position:relative;
     background:#fff;border:none;
-    border-radius:6px;padding:6px 9px;font-size:11px;font-weight:700;
+    border-radius:8px;padding:9px 11px;font-size:11.5px;font-weight:700;
     box-shadow:0 1px 2px rgba(0,0,0,.05);
     transition:transform .1s,box-shadow .1s;
   }
@@ -156,6 +156,13 @@
   .chip .dot{width:7px;height:7px;border-radius:50%;flex:none}
   .chip .who{color:var(--ink);font-weight:800;white-space:nowrap}
   .chip .role{color:var(--ink2);font-weight:600;white-space:nowrap}
+  /* 흰 배경(비-탕전) 칩은 글자색도 종류별 테마색으로 */
+  .chip.fam-gen .who{color:var(--blue-d)}
+  .chip.fam-gen .role{color:var(--blue)}
+  .chip.fam-diet .who{color:var(--orange-d)}
+  .chip.fam-diet .role{color:var(--orange)}
+  .chip.fam-stock .who{color:var(--green-d)}
+  .chip.fam-stock .role{color:var(--green)}
   .chip .day{margin-left:auto;color:var(--blue);font-weight:800;font-size:10px}
 
   /* 점 색: 한약=파랑, 다이어트=주황 (처방·HS·IS 등 탕전이 아닌 모든 칩) */
@@ -908,7 +915,7 @@ function render(){
       const isBrew=isBrewKind(m.kind);
       const dot=`<span class="dot${(isBrew||isPhone)?' dot-hidden':' dot-'+fam}"></span>`;
       const phoneTag=isPhone?`<span class="phone-tag">전화상담</span>`:'';
-      h+=`<div class="chip${isBrew?' fill-'+fam:''}${isPhone?' phone':''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
+      h+=`<div class="chip fam-${fam}${isBrew?' fill-'+fam:''}${isPhone?' phone':''}${moved?' moved':''}" draggable="${editUnlocked}" data-cid="${c.id}" data-role="${role}"${tip}>
         ${dot}<span class="who">${c.name}</span><span class="role">${m.label}</span>${phoneTag}</div>`;
     });
     h+='</div>';
